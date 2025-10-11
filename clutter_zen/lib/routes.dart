@@ -1,0 +1,65 @@
+import 'package:flutter/material.dart';
+
+import 'screens/app/splash_screen.dart';
+import 'screens/app/home_screen.dart';
+import 'screens/app/categories_screen.dart';
+import 'screens/app/photo_upload_screen.dart';
+import 'screens/app/processing_screen.dart';
+import 'screens/app/settings_screen.dart';
+import 'screens/app/notification_settings_screen.dart';
+import 'screens/app/contact_us_screen.dart';
+import 'screens/app/pricing_screen.dart';
+import 'screens/app/terms_services_screen.dart';
+import 'screens/app/faqs_screen.dart';
+import 'screens/app/history_screen.dart';
+import 'screens/auth/stubs.dart';
+
+class AppRoutes {
+  static Map<String, WidgetBuilder> routes = {
+    '/splash': (_) => const SplashScreen(),
+    '/home': (_) => const HomeScreen(),
+    '/categories': (_) => const CategoriesScreen(),
+    '/photo-upload': (_) => const PhotoUploadScreen(),
+    '/processing': (_) => const ProcessingScreen(),
+    '/settings': (_) => const SettingsScreen(),
+    '/notification-settings': (_) => const NotificationSettingsScreen(),
+    '/contact-us': (_) => const ContactUsScreen(),
+    '/pricing': (_) => const PricingScreen(),
+    '/terms': (_) => const TermsServicesScreen(),
+    '/faqs': (_) => const FaqsScreen(),
+    '/history': (_) => const HistoryScreen(),
+    '/sign-in': (_) => const SignInScreen(),
+    '/create-account': (_) => const CreateAccountScreen(),
+    '/forgot-password': (_) => const ForgotPasswordScreen(),
+    '/update-profile': (_) => const UpdateProfileScreen(),
+    '/update-password': (_) => const UpdatePasswordScreen(),
+  };
+
+  static List<Map<String, String>> allScreens = [
+    {'name': 'splash-screen', 'route': '/splash'},
+    {'name': 'home-screen', 'route': '/home'},
+    {'name': 'home-screen-2', 'route': '/home'},
+    {'name': 'categories', 'route': '/categories'},
+    {'name': 'capture-screen', 'route': '/photo-upload'},
+    {'name': 'processing', 'route': '/processing'},
+    // results screens are accessed via actual flow from Upload → Vision
+    {'name': 'settings', 'route': '/settings'},
+    {'name': 'settings-2', 'route': '/settings'},
+    {'name': 'notification-settings', 'route': '/notification-settings'},
+    {'name': 'contact-us', 'route': '/contact-us'},
+    {'name': 'pricing', 'route': '/pricing'},
+    {'name': 'pricing-2', 'route': '/pricing'},
+    {'name': 'terms-services', 'route': '/terms'},
+    {'name': 'terms-services-2', 'route': '/terms'},
+    {'name': 'terms-services-3', 'route': '/terms'},
+    {'name': 'faqs', 'route': '/faqs'},
+    {'name': 'history', 'route': '/history'},
+    {'name': 'sign-in', 'route': '/sign-in'},
+    {'name': 'create-account', 'route': '/create-account'},
+    {'name': 'forget password', 'route': '/forgot-password'},
+    {'name': 'update-profile', 'route': '/update-profile'},
+    {'name': 'update-password', 'route': '/update-password'},
+  ];
+}
+
+

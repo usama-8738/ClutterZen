@@ -1,0 +1,24 @@
+# Ignore local environment files anywhere
+**/.env
+**/.env.*
+!**/.env.example
+
+# Ignore requirements directory with mockups/docs
+requirements/
+
+# Flutter/Dart typical ignores (safe defaults)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+ios/Flutter/.last_build_id
+windows/flutter/ephemeral/
+macos/Flutter/ephemeral/
+linux/flutter/ephemeral/
+web/.dart_tool/
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+
