@@ -43,6 +43,9 @@ dependencies:
   http:
   url_launcher:
   share_plus:
+  lottie:
+  sign_in_with_apple:
+  crypto:
 
 dev_dependencies:
   flutter_test:

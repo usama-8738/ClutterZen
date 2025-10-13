@@ -5,6 +5,7 @@ import 'theme.dart';
 import 'screens/results/results_screen.dart';
 import 'services/vision_service.dart';
 import 'routes.dart';
+import 'screens/app/photo_upload_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Clutter Zen',
       theme: buildAppTheme(),
-      routes: AppRoutes.routes,
+      routes: {
+        ...AppRoutes.routes,
+        '/home': (context) => const HomePage(),
+      },
       initialRoute: '/splash',
       home: const SizedBox.shrink(),
     );
@@ -46,7 +50,7 @@ class _HomePageState extends State<HomePage> {
     final pages = <Widget>[
       const _HomeTab(),
       const _CategoriesTab(),
-      const _UploadTab(),
+      const CaptureScreen(),
       const _TasksTab(),
       const _ProgressTab(),
     ];
@@ -77,18 +81,44 @@ class _HomeTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          'Welcome back',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        // Greeting + small subtitle
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Welcome back', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('Let\'s declutter with AI today', style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+            IconButton(onPressed: () => Navigator.of(context).pushNamed('/notification-settings'), icon: const Icon(Icons.notifications_none)),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text('Scan a room or pick a category to get started.'),
+        const SizedBox(height: 12),
+        // Search bar
+        const _SearchBar(),
         const SizedBox(height: 16),
-        _QuickActions(),
+        // Promo carousel (covers home-screen and home-screen-2 hero variants)
+        const _PromoCarousel(),
         const SizedBox(height: 16),
-        Text('Rooms', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        // Quick actions
+        const _QuickActionsRow(),
+        const SizedBox(height: 16),
+        // Categories chips
+        const _SectionTitle('Categories'),
         const SizedBox(height: 8),
-        _CategoriesGrid(compact: true),
+        const _CategoryChips(),
+        const SizedBox(height: 16),
+        // Recent analyses
+        const _SectionTitle('Recent Analyses'),
+        const SizedBox(height: 8),
+        const _RecentAnalysesList(),
+        const SizedBox(height: 16),
+        // Tips/CTA
+        const _TipsCard(),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -97,25 +127,7 @@ class _HomeTab extends StatelessWidget {
 class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () => _goUpload(context),
-            icon: const Icon(Icons.camera_alt_outlined),
-            label: const Text('Capture'),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _goUpload(context),
-            icon: const Icon(Icons.photo_library_outlined),
-            label: const Text('From Gallery'),
-          ),
-        ),
-      ],
-    );
+    return const SizedBox.shrink();
   }
 
   void _goUpload(BuildContext context) {
@@ -218,6 +230,240 @@ class _CategoryScreen extends StatelessWidget {
             icon: const Icon(Icons.camera_alt_outlined),
             label: const Text('Capture this room'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar();
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search rooms, items, or tips',
+        prefixIcon: const Icon(Icons.search),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
+
+class _PromoCarousel extends StatefulWidget {
+  const _PromoCarousel();
+  @override
+  State<_PromoCarousel> createState() => _PromoCarouselState();
+}
+
+class _PromoCarouselState extends State<_PromoCarousel> {
+  final PageController _controller = PageController(viewportFraction: 0.92);
+  int _index = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = [
+      _PromoCard(
+        title: 'Declutter in minutes',
+        subtitle: 'Scan your space and get an AI plan',
+        buttonText: 'Start Scan',
+        onPressed: () => _goUpload(context),
+        color: Theme.of(context).colorScheme.primary,
+      ),
+      _PromoCard(
+        title: 'Track your progress',
+        subtitle: 'Before/after photos and tips',
+        buttonText: 'View Progress',
+        onPressed: () => Navigator.of(context).pushNamed('/history'),
+        color: Theme.of(context).colorScheme.secondary,
+      ),
+    ];
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 160,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: pages.length,
+            onPageChanged: (i) => setState(() => _index = i),
+            itemBuilder: (_, i) => Padding(padding: const EdgeInsets.only(right: 8), child: pages[i]),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(pages.length, (i) => _Dot(active: i == _index)),
+        )
+      ],
+    );
+  }
+
+  void _goUpload(BuildContext context) {
+    final state = context.findAncestorStateOfType<_HomePageState>();
+    state?.setState(() => state._index = 2);
+  }
+}
+
+class _PromoCard extends StatelessWidget {
+  const _PromoCard({required this.title, required this.subtitle, required this.buttonText, required this.onPressed, required this.color});
+  final String title;
+  final String subtitle;
+  final String buttonText;
+  final VoidCallback onPressed;
+  final Color color;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.7)]),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Text(subtitle, style: const TextStyle(color: Colors.white)),
+                const SizedBox(height: 10),
+                ElevatedButton(onPressed: onPressed, child: Text(buttonText)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Icon(Icons.auto_awesome, color: Colors.white, size: 48),
+        ],
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot({required this.active});
+  final bool active;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      margin: const EdgeInsets.symmetric(horizontal: 3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: active ? Theme.of(context).colorScheme.primary : Colors.grey[400],
+      ),
+    );
+  }
+}
+
+class _QuickActionsRow extends StatelessWidget {
+  const _QuickActionsRow();
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _QuickActionButton(icon: Icons.camera_alt_outlined, label: 'Capture', onTap: () => _goUpload(context))),
+        const SizedBox(width: 12),
+        Expanded(child: _QuickActionButton(icon: Icons.photo_library_outlined, label: 'Gallery', onTap: () => _goUpload(context))),
+        const SizedBox(width: 12),
+        Expanded(child: _QuickActionButton(icon: Icons.analytics_outlined, label: 'Analyze', onTap: () => _goUpload(context))),
+      ],
+    );
+  }
+  void _goUpload(BuildContext context) {
+    final state = context.findAncestorStateOfType<_HomePageState>();
+    state?.setState(() => state._index = 2);
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  const _QuickActionButton({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon),
+      label: Text(label),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold));
+}
+
+class _CategoryChips extends StatelessWidget {
+  const _CategoryChips();
+  @override
+  Widget build(BuildContext context) {
+    final cats = const ['Bedroom', 'Kitchen', 'Office', 'Closet', 'Garage', 'Living'];
+    return Wrap(
+      spacing: 8,
+      runSpacing: -8,
+      children: cats.map((c) => ActionChip(label: Text(c), onPressed: () => Navigator.of(context).pushNamed('/categories'))).toList(),
+    );
+  }
+}
+
+class _RecentAnalysesList extends StatelessWidget {
+  const _RecentAnalysesList();
+  @override
+  Widget build(BuildContext context) {
+    final items = const [
+      {'title': 'Bedroom scan', 'subtitle': '12 items detected • 6 tips'},
+      {'title': 'Kitchen scan', 'subtitle': '8 items detected • 4 tips'},
+    ];
+    return Column(
+      children: [
+        for (final i in items)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.image_outlined),
+              title: Text(i['title']!),
+              subtitle: Text(i['subtitle']!),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).pushNamed('/history'),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _TipsCard extends StatelessWidget {
+  const _TipsCard();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text('Tips & Resources', style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 8),
+          Text('• Group similar items together'),
+          Text('• Label bins and shelves'),
+          Text('• Clear surfaces first'),
         ],
       ),
     );

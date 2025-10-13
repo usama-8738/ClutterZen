@@ -1,24 +1,136 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../models/vision_models.dart';
+import '../results/results_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final items = List.generate(10, (i) => 'Analysis #${i + 1}');
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
-      body: ListView.builder(
-        itemCount: items.length,
-        itemBuilder: (_, i) => ListTile(
-          leading: const Icon(Icons.history),
-          title: Text(items[i]),
-          subtitle: const Text('Clutter score: 6.5'),
-          trailing: const Icon(Icons.chevron_right),
+      appBar: AppBar(title: const Text('Scan History')),
+      body: uid == null
+          ? const Center(child: Text('Sign in to view history'))
+          : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('analyses')
+                  .where('uid', isEqualTo: uid)
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final docs = snap.data!.docs;
+                if (docs.isEmpty) {
+                  return const Center(child: Text('No scans yet'));
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (_, i) {
+                    final d = docs[i].data();
+                    final url = d['imageUrl'] as String?;
+                    final title = (d['title'] as String?) ?? 'Scan';
+                    final ts = (d['createdAt'] as Timestamp?);
+                    final date = ts != null ? _format(ts.toDate()) : '';
+                    final score = (d['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-';
+                    final chip = (d['primaryCategory'] as String?) ?? 'Home';
+                    return _HistoryCard(
+                      thumbnailUrl: url,
+                      title: title,
+                      subtitle: date,
+                      category: chip,
+                      score: score,
+                      onTap: () {
+                        final analysis = VisionAnalysis(objects: const [], labels: (d['labels'] as List?)?.cast<String>() ?? const []);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ResultsScreen(image: NetworkImage(url ?? ''), analysis: analysis),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+    );
+  }
+}
+
+class _HistoryCard extends StatelessWidget {
+  const _HistoryCard({required this.thumbnailUrl, required this.title, required this.subtitle, required this.category, required this.score, required this.onTap});
+  final String? thumbnailUrl;
+  final String title;
+  final String subtitle;
+  final String category;
+  final String score;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      borderRadius: BorderRadius.circular(16),
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.15),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: thumbnailUrl != null && thumbnailUrl!.isNotEmpty
+                    ? Image.network(thumbnailUrl!, width: 72, height: 72, fit: BoxFit.cover)
+                    : Container(width: 72, height: 72, color: Colors.grey[300]),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: const Color(0xFFE7FAF2), borderRadius: BorderRadius.circular(16)),
+                      child: Text(category, style: const TextStyle(color: Color(0xFF10B981))),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('Clutter score', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: const Color(0xFF34D399), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: const Color(0xFF34D399).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))]),
+                    child: Text('$score/10', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+String _format(DateTime d) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${months[d.month - 1]} ${d.day}, ${d.year}';
 }
 
 
