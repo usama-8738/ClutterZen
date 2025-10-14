@@ -6,16 +6,32 @@ class FaqsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final faqs = const [
-      {'q': 'How do I scan a room?', 'a': 'Go to Upload and choose camera or gallery.'},
-      {'q': 'Is my data private?', 'a': 'Yes, see our privacy policy.'},
+      {'q': 'How do I scan a room?', 'a': 'Go to Capture and choose camera or gallery.'},
+      {'q': 'Is my data private?', 'a': 'Yes, see Terms > Privacy tab.'},
+      {'q': 'Can I generate after images?', 'a': 'Yes, with Replicate in Results.'},
+      {'q': 'How many scans are free?', 'a': 'Free plan includes 3 scans per month.'},
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('FAQs')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          for (final f in faqs)
-            ExpansionTile(title: Text(f['q']!), children: [Padding(padding: const EdgeInsets.all(12), child: Text(f['a']!))]),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              decoration: InputDecoration(hintText: 'Search FAQs', prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                for (final f in faqs)
+                  Card(
+                    child: ExpansionTile(title: Text(f['q']!), children: [Padding(padding: const EdgeInsets.all(12), child: Text(f['a']!))]),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

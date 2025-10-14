@@ -11,6 +11,7 @@ import '../../services/replicate_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/analysis_repository.dart';
+import '../../env.dart';
 
 class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key, required this.image, required this.analysis});
@@ -141,7 +142,10 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 12),
           // Actions
-          _ReplicateAction(image: widget.image, onAfter: (url) => setState(() => _replicateAfterUrl = url)),
+          if (Env.replicateToken.isEmpty)
+            const Text('Replicate token missing. Showing analysis without organized preview.'),
+          if (Env.replicateToken.isNotEmpty)
+            _ReplicateAction(image: widget.image, onAfter: (url) => setState(() => _replicateAfterUrl = url)),
           const SizedBox(height: 8),
           _SaveButton(image: widget.image, analysis: widget.analysis),
           const SizedBox(height: 16),

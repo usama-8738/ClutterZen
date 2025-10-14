@@ -132,7 +132,7 @@ class _PrimaryActions extends StatelessWidget {
       children: [
         _ShadowButton(
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: () => Navigator.of(context).pushNamed('/photo-upload'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black,
@@ -147,7 +147,7 @@ class _PrimaryActions extends StatelessWidget {
         _ShadowButton(
           dark: true,
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: () => Navigator.of(context).pushNamed('/photo-upload'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,

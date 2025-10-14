@@ -251,7 +251,7 @@ class _AnalyzeFormState extends State<_AnalyzeForm> {
       _error = null;
     });
     try {
-      // TODO: replace with env/secure storage; for dev, read from const
+      // Use Env config; if missing, allow placeholder flow
       const visionApiKey = String.fromEnvironment('VISION_API_KEY', defaultValue: '');
       if (visionApiKey.isEmpty) {
         setState(() => _error = 'Missing Vision API key (VISION_API_KEY).');

@@ -1,0 +1,74 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+class PhoneOtpScreen extends StatefulWidget {
+  const PhoneOtpScreen({super.key});
+
+  @override
+  State<PhoneOtpScreen> createState() => _PhoneOtpScreenState();
+}
+
+class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
+  final TextEditingController _phone = TextEditingController();
+  final TextEditingController _code = TextEditingController();
+  String? _verificationId;
+  bool _sending = false;
+  bool _verifying = false;
+  String? _msg;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sign in with Phone')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_msg != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(_msg!, style: const TextStyle(color: Colors.red))),
+          TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: '+1 555 123 4567', labelText: 'Phone Number', filled: true, fillColor: Color(0xFFF2F4F7), border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))))),
+          const SizedBox(height: 12),
+          ElevatedButton(onPressed: _sending ? null : _sendCode, child: _sending ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Send Code')),
+          const SizedBox(height: 16),
+          TextField(controller: _code, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: '123456', labelText: 'Verification Code', filled: true, fillColor: Color(0xFFF2F4F7), border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))))),
+          const SizedBox(height: 12),
+          ElevatedButton(onPressed: _verifying ? null : _verify, child: _verifying ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Verify & Sign In')),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendCode() async {
+    setState(() { _sending = true; _msg = null; });
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _phone.text.trim(),
+        verificationCompleted: (cred) async {
+          try {
+            await FirebaseAuth.instance.signInWithCredential(cred);
+          } catch (_) {}
+        },
+        verificationFailed: (e) => setState(() => _msg = e.message),
+        codeSent: (verificationId, resendToken) => setState(() => _verificationId = verificationId),
+        codeAutoRetrievalTimeout: (verificationId) => setState(() => _verificationId = verificationId),
+      );
+    } catch (e) {
+      setState(() => _msg = 'Failed: $e');
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _verify() async {
+    if (_verificationId == null) { setState(() => _msg = 'Request a code first.'); return; }
+    setState(() { _verifying = true; _msg = null; });
+    try {
+      final cred = PhoneAuthProvider.credential(verificationId: _verificationId!, smsCode: _code.text.trim());
+      await FirebaseAuth.instance.signInWithCredential(cred);
+    } catch (e) {
+      setState(() => _msg = 'Failed: $e');
+    } finally {
+      if (mounted) setState(() => _verifying = false);
+    }
+  }
+}
+
+

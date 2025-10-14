@@ -8,3 +8,7 @@ FIREBASE_PROJECT_ID=
 FIREBASE_STORAGE_BUCKET=
 FIREBASE_MESSAGING_SENDER_ID=
 FIREBASE_APP_ID=
+ 
+# How to run with dart-define (keys optional for UI testing):
+# flutter run -d chrome --dart-define=VISION_API_KEY=$VISION_API_KEY --dart-define=REPLICATE_API_TOKEN=$REPLICATE_API_TOKEN
+# flutter run -d windows --dart-define=VISION_API_KEY=$VISION_API_KEY --dart-define=REPLICATE_API_TOKEN=$REPLICATE_API_TOKEN

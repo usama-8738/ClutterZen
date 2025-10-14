@@ -2,6 +2,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../env.dart';
+import '../results/results_screen.dart';
+import '../../services/vision_service.dart';
 
 class CaptureScreen extends StatefulWidget {
   const CaptureScreen({super.key, this.launchSource});
@@ -147,6 +150,21 @@ class _CaptureScreenState extends State<CaptureScreen> {
   }
 
   void _goAnalyze() {
+    final bytes = _bytes;
+    if (bytes == null) {
+      Navigator.of(context).pushNamed('/processing');
+      return;
+    }
+    // If key is missing, navigate to Results with placeholder data instead of blocking
+    if (Env.visionApiKey.isEmpty) {
+      final placeholder = const VisionAnalysis(objects: [], labels: []);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ResultsScreen(image: MemoryImage(bytes), analysis: placeholder),
+        ),
+      );
+      return;
+    }
     Navigator.of(context).pushNamed('/processing');
   }
 }

@@ -8,34 +8,48 @@ class TermsServicesScreen extends StatelessWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Terms & Services'),
-          bottom: const TabBar(tabs: [
-            Tab(text: 'Overview'),
-            Tab(text: 'Privacy'),
-            Tab(text: 'Usage'),
-          ]),
+        appBar: AppBar(title: const Text('Terms & Services')),
+        body: Column(
+          children: const [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: _TabsHeader(),
+            ),
+            Expanded(child: _TabsBody()),
+          ],
         ),
-        body: const TabBarView(children: [
-          _TermsBody(title: 'Overview'),
-          _TermsBody(title: 'Privacy'),
-          _TermsBody(title: 'Usage'),
-        ]),
       ),
     );
   }
 }
 
-class TermsServicesAlt2Screen extends StatelessWidget {
-  const TermsServicesAlt2Screen({super.key});
+class _TabsHeader extends StatelessWidget {
+  const _TabsHeader();
   @override
-  Widget build(BuildContext context) => const _TermsBody(title: 'Terms (Alt 2)');
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+      child: const TabBar(
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.black54,
+        indicator: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.all(Radius.circular(12))),
+        tabs: [Tab(text: 'Overview'), Tab(text: 'Privacy'), Tab(text: 'Usage')],
+      ),
+    );
+  }
 }
 
-class TermsServicesAlt3Screen extends StatelessWidget {
-  const TermsServicesAlt3Screen({super.key});
+class _TabsBody extends StatelessWidget {
+  const _TabsBody();
   @override
-  Widget build(BuildContext context) => const _TermsBody(title: 'Terms (Alt 3)');
+  Widget build(BuildContext context) {
+    return const TabBarView(children: [
+      _TermsBody(title: 'Overview'),
+      _TermsBody(title: 'Privacy'),
+      _TermsBody(title: 'Usage'),
+    ]);
+  }
 }
 
 class _TermsBody extends StatelessWidget {
