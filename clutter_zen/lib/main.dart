@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'theme.dart';
+import 'firebase_options.dart';
 import 'routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
+    final opts = DefaultFirebaseOptions.currentPlatformOrNull;
+    if (opts != null) {
+      await Firebase.initializeApp(options: opts);
+    } else {
+      await Firebase.initializeApp();
+    }
   } catch (_) {
     // Firebase not configured yet; continue without blocking dev flow.
   }
