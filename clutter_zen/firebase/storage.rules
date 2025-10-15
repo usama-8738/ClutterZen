@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+    match /users/{uid}/uploads/{file} {
+      allow read: if signedIn() && uid == request.auth.uid;
+      allow write: if signedIn() && uid == request.auth.uid;
+    }
+    match /{allPaths=**} {
+      allow read: if false; allow write: if false;
+    }
+  }
+}
+
+
