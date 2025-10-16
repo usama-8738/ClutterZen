@@ -12,6 +12,7 @@ import 'screens/app/pricing_screen.dart';
 import 'screens/app/terms_services_screen.dart';
 import 'screens/app/faqs_screen.dart';
 import 'screens/app/history_screen.dart';
+import 'screens/app/diagnostics_screen.dart';
 import 'screens/auth/sign_in_screen.dart';
 import 'screens/auth/create_account_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
@@ -33,6 +34,7 @@ class AppRoutes {
     '/terms': (_) => const TermsServicesScreen(),
     '/faqs': (_) => const FaqsScreen(),
     '/history': (_) => const HistoryScreen(),
+    '/diagnostics': (_) => const DiagnosticsScreen(),
     '/sign-in': (_) => const SignInScreen(),
     '/create-account': (_) => const CreateAccountScreen(),
     '/forgot-password': (_) => const ForgotPasswordScreen(),
