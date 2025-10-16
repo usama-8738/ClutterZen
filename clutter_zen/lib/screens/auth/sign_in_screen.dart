@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +20,13 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _password = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _appleAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SignInWithApple.isAvailable().then((v) { if (mounted) setState(() => _appleAvailable = v); });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,14 +81,15 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            _shadow(
-              child: OutlinedButton.icon(
-                onPressed: _loading ? null : _signInApple,
-                icon: const Icon(Icons.apple),
-                label: const Text('Continue with Apple'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            if (_appleAvailable)
+              _shadow(
+                child: OutlinedButton.icon(
+                  onPressed: _loading ? null : _signInApple,
+                  icon: const Icon(Icons.apple),
+                  label: const Text('Continue with Apple'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                ),
               ),
-            ),
             const SizedBox(height: 12),
             _shadow(
               child: OutlinedButton.icon(
@@ -115,15 +124,7 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _signInGoogle() async {
     setState(() { _loading = true; _error = null; });
     try {
-      if (kIsWeb) {
-        await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
-      } else {
-        final googleUser = await GoogleSignIn().signIn();
-        if (googleUser == null) return; // cancelled
-        final googleAuth = await googleUser.authentication;
-        final credential = GoogleAuthProvider.credential(idToken: googleAuth.idToken, accessToken: googleAuth.accessToken);
-        await FirebaseAuth.instance.signInWithCredential(credential);
-      }
+      await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
     } catch (e) {
       setState(() => _error = 'Failed: $e');
     } finally {
@@ -174,8 +175,8 @@ class _PasswordFieldState extends State<_PasswordField> {
 
 String _generateNonce([int length = 32]) {
   const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-  final random = UniqueKey().hashCode;
-  return List.generate(length, (i) => charset[(random + i * 31) % charset.length]).join();
+  final rand = Random.secure();
+  return List.generate(length, (_) => charset[rand.nextInt(charset.length)]).join();
 }
 
 String _sha256ofString(String input) => sha256.convert(utf8.encode(input)).toString();
