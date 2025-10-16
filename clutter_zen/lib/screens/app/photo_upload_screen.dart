@@ -2,9 +2,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../env.dart';
 import '../results/results_screen.dart';
+import 'processing_screen.dart';
 import '../../services/vision_service.dart';
+import '../../services/storage_service.dart';
+import '../../models/vision_models.dart';
 
 class CaptureScreen extends StatefulWidget {
   const CaptureScreen({super.key, this.launchSource});
@@ -101,7 +106,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
   }
 
   String _headerTitle() {
-    if (_bytes == null) return '[If/Then/Else (2 Conditions...';
+    if (_bytes == null) return 'Upload or Take Photo';
     final src = _sourceLabel == null ? '' : 'Image from $_sourceLabel · ';
     return '$src${_fileName ?? ''}'.trim();
   }
@@ -155,17 +160,58 @@ class _CaptureScreenState extends State<CaptureScreen> {
       Navigator.of(context).pushNamed('/processing');
       return;
     }
-    // If key is missing, navigate to Results with placeholder data instead of blocking
-    if (Env.visionApiKey.isEmpty) {
-      final placeholder = const VisionAnalysis(objects: [], labels: []);
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ResultsScreen(image: MemoryImage(bytes), analysis: placeholder),
+    // Route to processing and run async pipeline there
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProcessingScreen(
+          background: MemoryImage(bytes),
+          onReady: (ctx) async {
+            try {
+              // If key is missing, go with placeholder analysis
+              if (Env.visionApiKey.isEmpty) {
+                final placeholder = const VisionAnalysis(objects: [], labels: []);
+                if (!mounted) return;
+                Navigator.of(ctx).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => ResultsScreen(image: MemoryImage(bytes), analysis: placeholder),
+                  ),
+                );
+                return;
+              }
+
+              String? imageUrl;
+              // Try to upload if signed in so Replicate and saving work later
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                final path = 'users/${user.uid}/uploads/${DateTime.now().millisecondsSinceEpoch}_${_fileName ?? 'image.jpg'}';
+                final storage = StorageService(FirebaseStorage.instance);
+                imageUrl = await storage.uploadBytes(path: path, data: bytes, contentType: 'image/jpeg');
+              }
+
+              final vision = VisionService(apiKey: Env.visionApiKey);
+              final analysis = imageUrl != null
+                  ? await vision.analyzeImageUrl(imageUrl)
+                  : await vision.analyzeImageBytes(bytes);
+
+              final image = imageUrl != null ? NetworkImage(imageUrl) : MemoryImage(bytes) as ImageProvider;
+              if (!mounted) return;
+              Navigator.of(ctx).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => ResultsScreen(image: image, analysis: analysis),
+                ),
+              );
+            } catch (_) {
+              if (!mounted) return;
+              Navigator.of(ctx).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => ResultsScreen(image: MemoryImage(bytes), analysis: const VisionAnalysis(objects: [], labels: [])),
+                ),
+              );
+            }
+          },
         ),
-      );
-      return;
-    }
-    Navigator.of(context).pushNamed('/processing');
+      ),
+    );
   }
 }
 
