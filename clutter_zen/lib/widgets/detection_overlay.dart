@@ -33,7 +33,7 @@ class DetectionOverlay extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.blueAccent, width: 2),
-                color: Colors.blueAccent.withValues(alpha: 0.12),
+                color: Colors.blueAccent.withOpacity(0.12),
               ),
               child: Align(
                 alignment: Alignment.topLeft,
