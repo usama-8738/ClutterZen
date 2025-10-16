@@ -1,15 +1,20 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
 class ReplicateService {
-  ReplicateService({required this.apiToken});
+  ReplicateService({required this.apiToken, http.Client? client, this.timeout = const Duration(seconds: 20), this.maxPollSeconds = 60})
+      : _client = client ?? http.Client();
 
   final String apiToken;
+  final http.Client _client;
+  final Duration timeout;
+  final int maxPollSeconds;
 
   // Returns generated image URL
   Future<String> generateOrganizedImage({required String imageUrl}) async {
-    final start = await http.post(
+    final start = await _client.post(
       Uri.parse('https://api.replicate.com/v1/predictions'),
       headers: {
         'Authorization': 'Token $apiToken',
@@ -32,12 +37,12 @@ class ReplicateService {
     final startJson = jsonDecode(start.body) as Map<String, dynamic>;
     final String id = (startJson['id'] as String);
     // poll
-    for (int i = 0; i < 60; i++) {
+    for (int i = 0; i < maxPollSeconds; i++) {
       await Future.delayed(const Duration(seconds: 1));
-      final res = await http.get(
+      final res = await _client.get(
         Uri.parse('https://api.replicate.com/v1/predictions/$id'),
         headers: {'Authorization': 'Token $apiToken'},
-      );
+      ).timeout(timeout);
       if (res.statusCode != 200) continue;
       final js = jsonDecode(res.body) as Map<String, dynamic>;
       final status = js['status'] as String?;
