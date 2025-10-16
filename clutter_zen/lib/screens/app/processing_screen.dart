@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 class ProcessingScreen extends StatefulWidget {
-  const ProcessingScreen({super.key, this.background});
+  const ProcessingScreen({super.key, this.background, this.onReady});
 
   final ImageProvider? background; // optional blurred backdrop
+  final Future<void> Function(BuildContext context)? onReady; // optional task to run then navigate
 
   @override
   State<ProcessingScreen> createState() => _ProcessingScreenState();
@@ -32,6 +33,13 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
   @override
   void initState() {
     super.initState();
+    // Kick off async task if provided, after first frame to ensure context is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final cb = widget.onReady;
+      if (cb != null) {
+        await cb(context);
+      }
+    });
     _timer = Timer.periodic(const Duration(milliseconds: 1500), (t) {
       if (!mounted) return;
       setState(() {
