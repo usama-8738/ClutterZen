@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/vision_models.dart';
+import '../results/results_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -294,8 +296,31 @@ class _RecentScans extends StatelessWidget {
                   subtitle: Text('Clutter Score: ${(d.data()['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-'}'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    // Navigate to results view: ideally query by doc id and load full analysis result view.
-                    Navigator.of(context).pushNamed('/history');
+                    final data = d.data();
+                    final url = (data['imageUrl'] as String?) ?? '';
+                    final labels = (data['labels'] as List?)?.cast<String>() ?? const <String>[];
+                    final objectsRaw = (data['objects'] as List?) ?? const <dynamic>[];
+                    final objects = objectsRaw.map((o) {
+                      final box = o['box'] as Map<String, dynamic>? ?? const {};
+                      return DetectedObject(
+                        name: (o['name'] as String?) ?? 'object',
+                        confidence: ((o['confidence'] as num?) ?? 0).toDouble(),
+                        box: BoundingBoxNormalized(
+                          left: ((box['left'] as num?) ?? 0).toDouble(),
+                          top: ((box['top'] as num?) ?? 0).toDouble(),
+                          width: ((box['width'] as num?) ?? 0).toDouble(),
+                          height: ((box['height'] as num?) ?? 0).toDouble(),
+                        ),
+                      );
+                    }).toList();
+                    final analysis = VisionAnalysis(objects: objects, labels: labels);
+                    if (url.isNotEmpty) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => ResultsScreen(image: NetworkImage(url), analysis: analysis),
+                        ),
+                      );
+                    }
                   },
                 ),
               ),
