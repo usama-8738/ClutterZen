@@ -12,6 +12,7 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
   final TextEditingController _phone = TextEditingController();
   final TextEditingController _code = TextEditingController();
   String? _verificationId;
+  int? _resendToken;
   bool _sending = false;
   bool _verifying = false;
   String? _msg;
@@ -26,7 +27,11 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
           if (_msg != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(_msg!, style: const TextStyle(color: Colors.red))),
           TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: '+1 555 123 4567', labelText: 'Phone Number', filled: true, fillColor: Color(0xFFF2F4F7), border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))))),
           const SizedBox(height: 12),
-          ElevatedButton(onPressed: _sending ? null : _sendCode, child: _sending ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Send Code')),
+          Row(children: [
+            Expanded(child: ElevatedButton(onPressed: _sending ? null : _sendCode, child: _sending ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Send Code'))),
+            const SizedBox(width: 8),
+            OutlinedButton(onPressed: (_resendToken == null || _sending) ? null : _resend, child: const Text('Resend')),
+          ]),
           const SizedBox(height: 16),
           TextField(controller: _code, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: '123456', labelText: 'Verification Code', filled: true, fillColor: Color(0xFFF2F4F7), border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))))),
           const SizedBox(height: 12),
@@ -47,7 +52,7 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
           } catch (_) {}
         },
         verificationFailed: (e) => setState(() => _msg = e.message),
-        codeSent: (verificationId, resendToken) => setState(() => _verificationId = verificationId),
+        codeSent: (verificationId, resendToken) => setState(() { _verificationId = verificationId; _resendToken = resendToken; _msg = 'Code sent.'; }),
         codeAutoRetrievalTimeout: (verificationId) => setState(() => _verificationId = verificationId),
       );
     } catch (e) {
@@ -67,6 +72,24 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
       setState(() => _msg = 'Failed: $e');
     } finally {
       if (mounted) setState(() => _verifying = false);
+    }
+  }
+  Future<void> _resend() async {
+    if (_resendToken == null) return;
+    setState(() { _sending = true; _msg = null; });
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _phone.text.trim(),
+        forceResendingToken: _resendToken,
+        verificationCompleted: (cred) async { try { await FirebaseAuth.instance.signInWithCredential(cred); } catch (_) {} },
+        verificationFailed: (e) => setState(() => _msg = e.message),
+        codeSent: (verificationId, resendToken) => setState(() { _verificationId = verificationId; _resendToken = resendToken; _msg = 'Code re-sent.'; }),
+        codeAutoRetrievalTimeout: (verificationId) => setState(() => _verificationId = verificationId),
+      );
+    } catch (e) {
+      setState(() => _msg = 'Failed: $e');
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
   }
 }
