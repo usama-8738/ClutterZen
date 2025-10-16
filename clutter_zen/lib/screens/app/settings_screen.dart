@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../env.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -42,11 +43,27 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const Divider(height: 32),
+          // API status
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Integrations', style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Google Vision API'), _statusDot(Env.visionApiKey.isNotEmpty)]),
+                const SizedBox(height: 6),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Replicate API'), _statusDot(Env.replicateToken.isNotEmpty)]),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 32),
           // Settings list
           ListTile(leading: const Icon(Icons.language), title: const Text('Language'), trailing: const Text('English')),
           ListTile(leading: const Icon(Icons.notifications_none), title: const Text('Notifications'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).pushNamed('/notification-settings')),
           ListTile(leading: const Icon(Icons.history), title: const Text('Scan History'), trailing: const Icon(Icons.chevron_right), onTap: () => Navigator.of(context).pushNamed('/history')),
           ListTile(leading: const Icon(Icons.help_outline), title: const Text('Help & FAQ'), onTap: () => Navigator.of(context).pushNamed('/faqs')),
+          ListTile(leading: const Icon(Icons.info_outline), title: const Text('Diagnostics'), onTap: () => Navigator.of(context).pushNamed('/diagnostics')),
           ListTile(leading: const Icon(Icons.description_outlined), title: const Text('Terms & Privacy'), onTap: () => Navigator.of(context).pushNamed('/terms')),
           ListTile(leading: const Icon(Icons.star_border), title: const Text('Rate App')),
           const Divider(height: 32),
@@ -66,6 +83,14 @@ String _initials(String? name) {
   final parts = name.trim().split(' ');
   if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
   return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+}
+
+Widget _statusDot(bool ok) {
+  return Row(children: [
+    Icon(ok ? Icons.check_circle : Icons.error_outline, color: ok ? Colors.green : Colors.red, size: 18),
+    const SizedBox(width: 6),
+    Text(ok ? 'Configured' : 'Missing', style: TextStyle(color: ok ? Colors.green : Colors.red)),
+  ]);
 }
 
 
