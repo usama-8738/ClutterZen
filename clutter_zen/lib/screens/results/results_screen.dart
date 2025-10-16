@@ -249,7 +249,7 @@ class _ShopTab extends StatelessWidget {
             children: [
               Container(height: 120, color: Colors.grey[200], child: const Center(child: Icon(Icons.shopping_bag, size: 48))),
               const Padding(padding: EdgeInsets.all(8), child: Text('Product Name', maxLines: 2, overflow: TextOverflow.ellipsis)),
-              const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text(' .00', style: TextStyle(fontWeight: FontWeight.bold))),
+              const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text(' 4.99', style: TextStyle(fontWeight: FontWeight.bold))),
               const Spacer(),
               Padding(padding: const EdgeInsets.all(8), child: ElevatedButton(onPressed: () {}, child: const Text('Shop Now'))),
             ],
@@ -272,7 +272,7 @@ class _ProfessionalTab extends StatelessWidget {
           leading: const CircleAvatar(child: Icon(Icons.person)),
           title: const Text('Organizer Name'),
           subtitle: const Text('Home organization • 4.8★'),
-          trailing: const Text(' 50/hr'),
+          trailing: const Text(' 50/hr'),
         ),
       ),
     );
