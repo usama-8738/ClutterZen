@@ -14,9 +14,21 @@ Firebase setup (non-blocking UI):
    - Storage:   firebase deploy --only storage:rules
 
 4) Platform config
-   - Android: add Internet, Camera, Photos permissions in AndroidManifest; add SHA-1 for Google Sign-In
-   - iOS: add camera/photo usage strings to Info.plist; enable Sign In with Apple
-   - Phone Auth: configure reCAPTCHA/APNs per Firebase docs
+   - Android:
+     * Place google-services.json under android/app/
+     * Add Internet/Camera/Photos permissions in AndroidManifest.xml
+     * In Firebase console, add SHA-1 and SHA-256 for the app signing key
+     * Enable Google Sign-In provider, add reversed client ID if needed
+   - iOS:
+     * Place GoogleService-Info.plist under ios/Runner/
+     * Add camera/photo usage strings to Info.plist (NSCameraUsageDescription, NSPhotoLibraryUsageDescription)
+     * Add URL types: reverse client ID from GoogleService-Info.plist for Google Sign-In
+     * Enable Sign in with Apple capability and add associated entitlements
+   - Web:
+     * Ensure web index.html includes the necessary Firebase JS SDK if not using flutterfire-generated options
+     * Or supply FIREBASE_* via dart-define (see ENV_TEMPLATE.txt)
+   - Phone Auth:
+     * Configure reCAPTCHA (web/Android) and APNs (iOS) per Firebase docs
 
 UI will keep working without keys; features that need Firebase will no-op or show placeholders.
 
