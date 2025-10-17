@@ -298,6 +298,7 @@ class _RecentScans extends StatelessWidget {
                   onTap: () {
                     final data = d.data();
                     final url = (data['imageUrl'] as String?) ?? '';
+                    final organized = data['organizedImageUrl'] as String?;
                     final labels = (data['labels'] as List?)?.cast<String>() ?? const <String>[];
                     final objectsRaw = (data['objects'] as List?) ?? const <dynamic>[];
                     final objects = objectsRaw.map((o) {
@@ -317,7 +318,7 @@ class _RecentScans extends StatelessWidget {
                     if (url.isNotEmpty) {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => ResultsScreen(image: NetworkImage(url), analysis: analysis),
+                          builder: (_) => ResultsScreen(image: NetworkImage(url), analysis: analysis, organizedUrl: organized),
                         ),
                       );
                     }
