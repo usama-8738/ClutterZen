@@ -14,10 +14,11 @@ import '../../services/analysis_repository.dart';
 import '../../env.dart';
 
 class ResultsScreen extends StatefulWidget {
-  const ResultsScreen({super.key, required this.image, required this.analysis});
+  const ResultsScreen({super.key, required this.image, required this.analysis, this.organizedUrl});
 
   final ImageProvider image;
   final VisionAnalysis analysis;
+  final String? organizedUrl;
 
   @override
   State<ResultsScreen> createState() => _ResultsScreenState();
@@ -27,11 +28,13 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
   late final TabController _tab;
   bool _showDetections = true;
   String? _replicateAfterUrl;
+  String? _savedDocId;
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this);
+    _replicateAfterUrl = widget.organizedUrl;
   }
 
   @override
@@ -145,9 +148,18 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
           if (Env.replicateToken.isEmpty)
             const Text('Replicate token missing. Showing analysis without organized preview.'),
           if (Env.replicateToken.isNotEmpty)
-            _ReplicateAction(image: widget.image, onAfter: (url) => setState(() => _replicateAfterUrl = url)),
+            _ReplicateAction(
+              image: widget.image,
+              initialDocId: _savedDocId,
+              onAfter: (url) => setState(() => _replicateAfterUrl = url),
+            ),
           const SizedBox(height: 8),
-          _SaveButton(image: widget.image, analysis: widget.analysis),
+          _SaveButton(
+            image: widget.image,
+            analysis: widget.analysis,
+            organizedUrl: _replicateAfterUrl,
+            onSaved: (id) => setState(() => _savedDocId = id),
+          ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pushReplacementNamed('/home'),
@@ -172,7 +184,13 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
   Future<void> _saveAnalysis() async {
     if (widget.image is! NetworkImage) return;
     final url = (widget.image as NetworkImage).url;
-    await AnalysisRepository(FirebaseFirestore.instance, FirebaseAuth.instance).saveAnalysis(imageUrl: url, analysis: widget.analysis);
+    final repo = AnalysisRepository(FirebaseFirestore.instance, FirebaseAuth.instance);
+    final id = await repo.saveAnalysisAndReturnId(
+      imageUrl: url,
+      analysis: widget.analysis,
+      organizedImageUrl: _replicateAfterUrl,
+    );
+    setState(() => _savedDocId = id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved analysis')));
   }
@@ -197,93 +215,13 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _DIYTab extends StatelessWidget {
-  const _DIYTab({required this.labels});
-  final List<String> labels;
-  @override
-  Widget build(BuildContext context) {
-    final steps = <String>[
-      'Group similar items together',
-      'Clear surfaces first',
-      'Use bins and labels',
-      'Create zones by category',
-    ];
-    return ListView(
-      padding: const EdgeInsets.all(8),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.06), borderRadius: BorderRadius.circular(12)),
-          child: Row(children: [const Icon(Icons.handyman, size: 32), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text('Free Organization Plan'), Text('Time: ~30 minutes  •  Difficulty: Easy')])]),
-        ),
-        const SizedBox(height: 8),
-        for (int i = 0; i < steps.length; i++)
-          Card(
-            child: ListTile(
-              leading: CircleAvatar(child: Text('${i + 1}')),
-              title: Text(steps[i]),
-              trailing: const Icon(Icons.check_box_outline_blank),
-            ),
-          ),
-        const SizedBox(height: 8),
-        Row(children: [OutlinedButton(onPressed: () {}, child: const Text('Save Plan')), const SizedBox(width: 8), ElevatedButton(onPressed: () {}, child: const Text('Share'))]),
-      ],
-    );
-  }
-}
-
-class _ShopTab extends StatelessWidget {
-  const _ShopTab();
-  @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      padding: const EdgeInsets.all(8),
-      crossAxisCount: 2,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      children: List.generate(
-        6,
-        (i) => Card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(height: 120, color: Colors.grey[200], child: const Center(child: Icon(Icons.shopping_bag, size: 48))),
-              const Padding(padding: EdgeInsets.all(8), child: Text('Product Name', maxLines: 2, overflow: TextOverflow.ellipsis)),
-              const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text(' 4.99', style: TextStyle(fontWeight: FontWeight.bold))),
-              const Spacer(),
-              Padding(padding: const EdgeInsets.all(8), child: ElevatedButton(onPressed: () {}, child: const Text('Shop Now'))),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfessionalTab extends StatelessWidget {
-  const _ProfessionalTab();
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: 6,
-      itemBuilder: (_, i) => Card(
-        child: ListTile(
-          leading: const CircleAvatar(child: Icon(Icons.person)),
-          title: const Text('Organizer Name'),
-          subtitle: const Text('Home organization • 4.8★'),
-          trailing: const Text(' 50/hr'),
-        ),
-      ),
-    );
-  }
-}
-
 class _SaveButton extends StatefulWidget {
-  const _SaveButton({required this.image, required this.analysis});
+  const _SaveButton({required this.image, required this.analysis, this.organizedUrl, this.onSaved});
 
   final ImageProvider image;
   final VisionAnalysis analysis;
+  final String? organizedUrl;
+  final void Function(String docId)? onSaved;
 
   @override
   State<_SaveButton> createState() => _SaveButtonState();
@@ -321,7 +259,8 @@ class _SaveButtonState extends State<_SaveButton> {
       }
       final url = (widget.image as NetworkImage).url;
       final repo = AnalysisRepository(FirebaseFirestore.instance, FirebaseAuth.instance);
-      await repo.saveAnalysis(imageUrl: url, analysis: widget.analysis);
+      final id = await repo.saveAnalysisAndReturnId(imageUrl: url, analysis: widget.analysis, organizedImageUrl: widget.organizedUrl);
+      if (widget.onSaved != null) widget.onSaved!(id);
       setState(() { _msg = 'Saved.'; });
     } catch (e) {
       setState(() { _msg = 'Failed: $e'; });
@@ -332,10 +271,11 @@ class _SaveButtonState extends State<_SaveButton> {
 }
 
 class _ReplicateAction extends StatefulWidget {
-  const _ReplicateAction({required this.image, this.onAfter});
+  const _ReplicateAction({required this.image, this.onAfter, this.initialDocId});
 
   final ImageProvider image;
   final void Function(String url)? onAfter;
+  final String? initialDocId;
 
   @override
   State<_ReplicateAction> createState() => _ReplicateActionState();
@@ -345,6 +285,13 @@ class _ReplicateActionState extends State<_ReplicateAction> {
   bool _loading = false;
   String? _afterUrl;
   String? _error;
+  String? _analysisDocId;
+
+  @override
+  void initState() {
+    super.initState();
+    _analysisDocId = widget.initialDocId;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -393,6 +340,37 @@ class _ReplicateActionState extends State<_ReplicateAction> {
       final after = await service.generateOrganizedImage(imageUrl: url);
       setState(() => _afterUrl = after);
       if (after != null && widget.onAfter != null) widget.onAfter!(after);
+      // Optionally save/update analysis with organized image URL if a prior save exists
+      try {
+        final repo = AnalysisRepository(FirebaseFirestore.instance, FirebaseAuth.instance);
+        if (_analysisDocId == null) {
+          // Try to find the latest analysis for this image and user, then update
+          final uid = FirebaseAuth.instance.currentUser?.uid;
+          if (uid != null) {
+            final q = await FirebaseFirestore.instance
+                .collection('analyses')
+                .where('uid', isEqualTo: uid)
+                .where('imageUrl', isEqualTo: url)
+                .orderBy('createdAt', descending: true)
+                .limit(1)
+                .get();
+            if (q.docs.isNotEmpty) {
+              _analysisDocId = q.docs.first.id;
+            }
+          }
+          if (_analysisDocId == null) {
+            // Create a minimal record to attach the organized image
+            final analysis = const VisionAnalysis(objects: [], labels: []);
+            _analysisDocId = await repo.saveAnalysisAndReturnId(imageUrl: url, analysis: analysis, organizedImageUrl: after);
+          } else {
+            await repo.updateOrganizedImage(_analysisDocId!, after);
+          }
+        } else {
+          await repo.updateOrganizedImage(_analysisDocId!, after);
+        }
+      } catch (_) {
+        // Non-fatal: do not block UI if Firestore write fails
+      }
     } catch (e) {
       setState(() => _error = 'Failed: $e');
     } finally {
