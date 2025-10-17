@@ -9,6 +9,9 @@ class Env {
   static const firebaseStorageBucket = String.fromEnvironment('FIREBASE_STORAGE_BUCKET', defaultValue: '');
   static const firebaseMessagingSenderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID', defaultValue: '');
   static const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '');
+
+  // Dev toggle: disable authentication gate for UI testing
+  static const disableAuthGate = bool.fromEnvironment('DISABLE_AUTH_GATE', defaultValue: false);
 }
 
 

@@ -75,7 +75,7 @@ class _GreetingRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _DisplayName(),
-        IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
+        IconButton(onPressed: () => Navigator.of(context).pushNamed('/settings'), icon: const Icon(Icons.settings)),
       ],
     );
   }

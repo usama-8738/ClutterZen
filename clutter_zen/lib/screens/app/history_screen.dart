@@ -47,12 +47,30 @@ class HistoryScreen extends StatelessWidget {
                       category: chip,
                       score: score,
                       onTap: () {
-                        final analysis = VisionAnalysis(objects: const [], labels: (d['labels'] as List?)?.cast<String>() ?? const []);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ResultsScreen(image: NetworkImage(url ?? ''), analysis: analysis),
-                          ),
-                        );
+                        final labels = (d['labels'] as List?)?.cast<String>() ?? const <String>[];
+                        final objectsRaw = (d['objects'] as List?) ?? const <dynamic>[];
+                        final objects = objectsRaw.map((o) {
+                          final box = o is Map<String, dynamic> ? (o['box'] as Map<String, dynamic>? ?? const {}) : const <String, dynamic>{};
+                          return DetectedObject(
+                            name: (o is Map && o['name'] is String) ? o['name'] as String : 'object',
+                            confidence: (o is Map && o['confidence'] is num) ? (o['confidence'] as num).toDouble() : 0.0,
+                            box: BoundingBoxNormalized(
+                              left: (box['left'] is num) ? (box['left'] as num).toDouble() : 0.0,
+                              top: (box['top'] is num) ? (box['top'] as num).toDouble() : 0.0,
+                              width: (box['width'] is num) ? (box['width'] as num).toDouble() : 0.0,
+                              height: (box['height'] is num) ? (box['height'] as num).toDouble() : 0.0,
+                            ),
+                          );
+                        }).toList();
+                        final analysis = VisionAnalysis(objects: objects, labels: labels);
+                        final imageUrl = url ?? '';
+                        if (imageUrl.isNotEmpty) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ResultsScreen(image: NetworkImage(imageUrl), analysis: analysis),
+                            ),
+                          );
+                        }
                       },
                     );
                   },

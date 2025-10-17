@@ -4,6 +4,7 @@ import 'theme.dart';
 import 'firebase_options.dart';
 import 'screens/auth/auth_gate.dart';
 import 'routes.dart';
+import 'env.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,11 @@ class MyApp extends StatelessWidget {
       theme: buildAppTheme(),
       routes: AppRoutes.routes,
       initialRoute: '/splash',
-      builder: (context, child) => AuthGate(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) {
+        final content = child ?? const SizedBox.shrink();
+        if (Env.disableAuthGate) return content;
+        return AuthGate(child: content);
+      },
     );
   }
 }
