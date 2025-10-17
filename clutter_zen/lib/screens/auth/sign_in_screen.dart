@@ -124,7 +124,20 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _signInGoogle() async {
     setState(() { _loading = true; _error = null; });
     try {
-      await FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider());
+      if (kIsWeb) {
+        final provider = GoogleAuthProvider();
+        await FirebaseAuth.instance.signInWithPopup(provider);
+      } else {
+        final client = GoogleSignIn();
+        final account = await client.signIn();
+        if (account == null) throw Exception('Sign-in canceled');
+        final auth = await account.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: auth.accessToken,
+          idToken: auth.idToken,
+        );
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
     } catch (e) {
       setState(() => _error = 'Failed: $e');
     } finally {
