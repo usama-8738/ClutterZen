@@ -50,6 +50,8 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = highlighted ? Theme.of(context).colorScheme.primary : Colors.grey[200]!;
+    final cleaned = price.replaceAll('\u0000', '').trim();
+    final displayPrice = cleaned.isEmpty ? 'Free' : '\$' + cleaned;
     return Container(
       decoration: BoxDecoration(
         color: highlighted ? color.withOpacity(0.08) : Colors.white,
@@ -73,7 +75,7 @@ class _PlanCard extends StatelessWidget {
           SizedBox(height: 6),
           Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
           SizedBox(height: 12),
-          Text(price, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+          Text(displayPrice, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
           SizedBox(height: 12),
           for (final f in features) Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Row(children: [Icon(Icons.check_circle, color: Colors.green), SizedBox(width: 8), Expanded(child: Text(f))])),
           SizedBox(height: 12),
