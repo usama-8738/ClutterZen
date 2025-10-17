@@ -9,14 +9,14 @@ class AnalysisRepository {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
 
-  Future<void> saveAnalysis({required String imageUrl, required VisionAnalysis analysis}) async {
+  Future<void> saveAnalysis({required String imageUrl, required VisionAnalysis analysis, String? organizedImageUrl}) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Not signed in');
     final clutter = _computeClutterScore(analysis.objects.length, analysis.labels);
     final title = _deriveTitle(analysis.labels);
     final primaryCategory = _derivePrimaryCategory(analysis);
     final categories = _deriveCategories(analysis);
-    await _db.collection('analyses').add({
+    final data = <String, dynamic>{
       'uid': uid,
       'imageUrl': imageUrl,
       'title': title,
@@ -35,7 +35,49 @@ class AnalysisRepository {
         }
       }).toList(),
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+    if (organizedImageUrl != null && organizedImageUrl.isNotEmpty) {
+      data['organizedImageUrl'] = organizedImageUrl;
+    }
+    await _db.collection('analyses').add(data);
+  }
+
+  Future<String> saveAnalysisAndReturnId({required String imageUrl, required VisionAnalysis analysis, String? organizedImageUrl}) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('Not signed in');
+    final clutter = _computeClutterScore(analysis.objects.length, analysis.labels);
+    final title = _deriveTitle(analysis.labels);
+    final primaryCategory = _derivePrimaryCategory(analysis);
+    final categories = _deriveCategories(analysis);
+    final data = <String, dynamic>{
+      'uid': uid,
+      'imageUrl': imageUrl,
+      'title': title,
+      'clutterScore': clutter,
+      'primaryCategory': primaryCategory,
+      'categories': categories,
+      'labels': analysis.labels,
+      'objects': analysis.objects.map((o) => {
+        'name': o.name,
+        'confidence': o.confidence,
+        'box': {
+          'left': o.box.left,
+          'top': o.box.top,
+          'width': o.box.width,
+          'height': o.box.height,
+        }
+      }).toList(),
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+    if (organizedImageUrl != null && organizedImageUrl.isNotEmpty) {
+      data['organizedImageUrl'] = organizedImageUrl;
+    }
+    final ref = await _db.collection('analyses').add(data);
+    return ref.id;
+  }
+
+  Future<void> updateOrganizedImage(String docId, String organizedImageUrl) async {
+    await _db.collection('analyses').doc(docId).update({'organizedImageUrl': organizedImageUrl});
   }
 
   double _computeClutterScore(int objectCount, List<String> labels) {
