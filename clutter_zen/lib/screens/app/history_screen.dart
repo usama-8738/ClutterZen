@@ -64,10 +64,11 @@ class HistoryScreen extends StatelessWidget {
                         }).toList();
                         final analysis = VisionAnalysis(objects: objects, labels: labels);
                         final imageUrl = url ?? '';
+                        final organizedUrl = d['organizedImageUrl'] as String?;
                         if (imageUrl.isNotEmpty) {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => ResultsScreen(image: NetworkImage(imageUrl), analysis: analysis),
+                              builder: (_) => ResultsScreen(image: NetworkImage(imageUrl), analysis: analysis, organizedUrl: organizedUrl),
                             ),
                           );
                         }
