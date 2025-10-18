@@ -61,6 +61,36 @@ class FirebaseAnalysisRepository implements IAnalysisRepository {
             }).toList());
   }
 
+  @override
+  Future<void> create({required String uid, required String title, required String imageUrl, required String organizedImageUrl, required VisionAnalysis analysis}) async {
+    final clutter = _computeClutterScore(analysis.objects.length, analysis.labels);
+    final primaryCategory = _derivePrimaryCategory(analysis);
+    final categories = _deriveCategories(analysis);
+    await _db.collection('analyses').add({
+      'uid': uid,
+      'title': title,
+      'imageUrl': imageUrl,
+      'organizedImageUrl': organizedImageUrl,
+      'clutterScore': clutter,
+      'primaryCategory': primaryCategory,
+      'categories': categories,
+      'labels': analysis.labels,
+      'objects': analysis.objects
+          .map((o) => {
+                'name': o.name,
+                'confidence': o.confidence,
+                'box': {
+                  'left': o.box.left,
+                  'top': o.box.top,
+                  'width': o.box.width,
+                  'height': o.box.height,
+                }
+              })
+          .toList(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   double _computeClutterScore(int objectCount, List<String> labels) {
     double score = 5.0;
     if (objectCount < 5) {
