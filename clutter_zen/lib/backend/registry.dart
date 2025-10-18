@@ -65,6 +65,19 @@ class BackendRegistry {
   }
 }
 
+// Registry class for easy access to services
+class Registry {
+  static final _analysis = BackendRegistry.analysisRepository();
+  static final _storage = BackendRegistry.storageRepository();
+  static final _vision = BackendRegistry.visionProvider();
+  static final _replicate = BackendRegistry.generateProvider();
+
+  static IAnalysisRepository get analysis => _analysis;
+  static IStorageRepository get storage => _storage;
+  static IVisionProvider get vision => _vision;
+  static IGenerateProvider get replicate => _replicate;
+}
+
 class _VisionAdapter implements IVisionProvider {
   _VisionAdapter(this._svc);
   final VisionService _svc;
@@ -80,5 +93,3 @@ class _GenerateAdapter implements IGenerateProvider {
   @override
   Future<String> generateOrganizedImage({required String imageUrl}) => _svc.generateOrganizedImage(imageUrl: imageUrl);
 }
-
-
