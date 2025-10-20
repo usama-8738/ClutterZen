@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import '../../services/user_service.dart';
 
 class PricingScreen extends StatelessWidget {
   const PricingScreen({super.key});
@@ -33,20 +35,35 @@ class PricingScreen extends StatelessWidget {
               'Priority support',
             ],
             highlighted: true,
+            onTap: () => _updateCredits(100),
           ),
         ],
       ),
     );
   }
+
+  Future<void> _updateCredits(int amount) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await UserService.updateCredits(uid, amount);
+  }
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.title, required this.price, required this.subtitle, required this.features, required this.highlighted});
+  const _PlanCard({
+    required this.title,
+    required this.price,
+    required this.subtitle,
+    required this.features,
+    required this.highlighted,
+    this.onTap,
+  });
   final String title;
   final String price;
   final String subtitle;
   final List<String> features;
   final bool highlighted;
+  final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) {
     final color = highlighted ? Theme.of(context).colorScheme.primary : Colors.grey[200]!;
@@ -80,7 +97,7 @@ class _PlanCard extends StatelessWidget {
           for (final f in features) Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Row(children: [Icon(Icons.check_circle, color: Colors.green), SizedBox(width: 8), Expanded(child: Text(f))])),
           SizedBox(height: 12),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: onTap,
             style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 48), backgroundColor: highlighted ? Colors.black : Colors.white, foregroundColor: highlighted ? Colors.white : Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             child: Text(highlighted ? 'Upgrade' : 'Continue Free'),
           )
