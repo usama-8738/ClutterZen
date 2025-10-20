@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../../services/user_service.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
@@ -50,6 +53,15 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     try {
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: _email.text.trim(), password: _password.text);
       await cred.user?.updateDisplayName(_name.text.trim());
+      // Create user profile doc
+      if (cred.user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+          'displayName': _name.text.trim(),
+          'email': _email.text.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'scanCredits': 3,
+        });
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {
@@ -62,7 +74,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   Future<void> _google() async {
     setState(() { _loading = true; _error = null; });
     try {
-      await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+      final cred = await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+      await UserService.ensureUserProfile(cred.user);
     } catch (e) {
       setState(() => _error = 'Failed: $e');
     } finally {
@@ -77,7 +90,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       // In a production app, handle scopes and missing data appropriately.
       // Here we reuse the popup flow via OAuth provider on supported platforms.
       final oauth = OAuthProvider('apple.com');
-      await FirebaseAuth.instance.signInWithPopup(oauth);
+      final cred = await FirebaseAuth.instance.signInWithPopup(oauth);
+      await UserService.ensureUserProfile(cred.user);
     } catch (e) {
       setState(() => _error = 'Failed: $e');
     } finally {
