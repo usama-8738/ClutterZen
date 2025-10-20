@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../models/vision_models.dart';
 import '../../widgets/detection_overlay.dart';
+import '../../widgets/organization_zones_overlay.dart';
 import 'components/before_after_slider.dart';
 import 'components/diy_tab.dart';
 import 'components/shop_tab.dart';
@@ -27,6 +28,7 @@ class ResultsScreen extends StatefulWidget {
 class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProviderStateMixin {
   late final TabController _tab;
   bool _showDetections = true;
+  bool _showZones = false;
   String? _replicateAfterUrl;
   String? _savedDocId;
 
@@ -68,14 +70,33 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
               borderRadius: BorderRadius.circular(12),
               child: Stack(
                 children: [
-                  Positioned.fill(child: _showDetections ? DetectionOverlay(image: widget.image, objects: widget.analysis.objects) : Image(image: widget.image, fit: BoxFit.contain)),
+                  Positioned.fill(
+                    child: _showZones
+                        ? OrganizationZonesOverlay(analysis: widget.analysis, child: Image(image: widget.image, fit: BoxFit.contain))
+                        : (_showDetections ? DetectionOverlay(image: widget.image, objects: widget.analysis.objects) : Image(image: widget.image, fit: BoxFit.contain)),
+                  ),
                   Positioned(
                     right: 8,
                     top: 8,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(20)),
-                      child: Row(children: [const Text('Show AI Detection'), Switch(value: _showDetections, onChanged: (v) => setState(() => _showDetections = v))]),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Text('Detections'),
+                        Switch(value: _showDetections, onChanged: (v) => setState(() => _showDetections = v)),
+                      ]),
+                    ),
+                  ),
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(20)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Text('Zones'),
+                        Switch(value: _showZones, onChanged: (v) => setState(() => _showZones = v)),
+                      ]),
                     ),
                   ),
                 ],
@@ -136,10 +157,10 @@ class _ResultsScreenState extends State<ResultsScreen> with SingleTickerProvider
             height: 420,
             child: TabBarView(
               controller: _tab,
-              children: const [
-                DIYTab(),
-                ShopTab(),
-                ProfessionalTab(),
+              children: [
+                DIYTab(analysis: widget.analysis),
+                ShopTab(analysis: widget.analysis),
+                const ProfessionalTab(),
               ],
             ),
           ),
