@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/user_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -126,7 +128,8 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       if (kIsWeb) {
         final provider = GoogleAuthProvider();
-        await FirebaseAuth.instance.signInWithPopup(provider);
+        final cred = await FirebaseAuth.instance.signInWithPopup(provider);
+        await UserService.ensureUserProfile(cred.user);
       } else {
         final client = GoogleSignIn();
         final account = await client.signIn();
@@ -136,7 +139,8 @@ class _SignInScreenState extends State<SignInScreen> {
           accessToken: auth.accessToken,
           idToken: auth.idToken,
         );
-        await FirebaseAuth.instance.signInWithCredential(credential);
+        final cred = await FirebaseAuth.instance.signInWithCredential(credential);
+        await UserService.ensureUserProfile(cred.user);
       }
     } catch (e) {
       setState(() => _error = 'Failed: $e');
@@ -152,7 +156,8 @@ class _SignInScreenState extends State<SignInScreen> {
       final nonce = _sha256ofString(rawNonce);
       final credential = await SignInWithApple.getAppleIDCredential(scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName], nonce: nonce);
       final oauth = OAuthProvider('apple.com').credential(idToken: credential.identityToken, rawNonce: rawNonce);
-      await FirebaseAuth.instance.signInWithCredential(oauth);
+      final cred = await FirebaseAuth.instance.signInWithCredential(oauth);
+      await UserService.ensureUserProfile(cred.user);
     } catch (e) {
       setState(() => _error = 'Failed: $e');
     } finally {
@@ -160,6 +165,7 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 }
+
 
 class _PasswordField extends StatefulWidget {
   const _PasswordField({required this.controller});
