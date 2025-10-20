@@ -41,12 +41,20 @@ class _TopBar extends StatelessWidget {
   const _TopBar();
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(onPressed: () {}, icon: const Icon(Icons.menu)),
         const Icon(Icons.auto_awesome, size: 24),
-        Row(children: const [Icon(Icons.camera_alt_outlined), SizedBox(width: 4), Text('3')]),
+        if (uid != null)
+          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+            builder: (context, snap) {
+              final credits = snap.data?.data()?['scanCredits']?.toString() ?? '0';
+              return Row(children: [const Icon(Icons.camera_alt_outlined), const SizedBox(width: 4), Text(credits)]);
+            },
+          ),
       ],
     );
   }
