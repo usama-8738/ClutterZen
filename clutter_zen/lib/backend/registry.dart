@@ -82,14 +82,17 @@ class _VisionAdapter implements IVisionProvider {
   _VisionAdapter(this._svc);
   final VisionService _svc;
   @override
-  Future<VisionAnalysis> analyzeImageBytes(Uint8List bytes) => _svc.analyzeImageBytes(bytes);
+  Future<VisionAnalysis> analyzeImageBytes(Uint8List bytes) =>
+      _svc.analyzeImageBytes(bytes);
   @override
-  Future<VisionAnalysis> analyzeImageUrl(String imageUrl) => _svc.analyzeImageUrl(imageUrl);
+  Future<VisionAnalysis> analyzeImageUrl(String imageUrl) =>
+      _svc.analyzeImageUrl(imageUrl);
 }
 
 class _GenerateAdapter implements IGenerateProvider {
   _GenerateAdapter(this._svc);
   final ReplicateService _svc;
   @override
-  Future<String> generateOrganizedImage({required String imageUrl}) => _svc.generateOrganizedImage(imageUrl: imageUrl);
+  Future<String> generateOrganizedImage({required String imageUrl}) =>
+      _svc.generateOrganizedImage(imageUrl: imageUrl);
 }
