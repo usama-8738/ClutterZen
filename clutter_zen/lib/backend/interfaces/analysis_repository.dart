@@ -1,9 +1,17 @@
 import '../../models/vision_models.dart';
 
 abstract class IAnalysisRepository {
-  Future<void> saveAnalysis({required String uid, required String imageUrl, required VisionAnalysis analysis});
+  Future<void> saveAnalysis(
+      {required String uid,
+      required String imageUrl,
+      required VisionAnalysis analysis});
   Stream<List<StoredAnalysis>> watchUserAnalyses(String uid, {int limit});
-  Future<void> create({required String uid, required String title, required String imageUrl, required String organizedImageUrl, required VisionAnalysis analysis});
+  Future<void> create(
+      {required String uid,
+      required String title,
+      required String imageUrl,
+      required String organizedImageUrl,
+      required VisionAnalysis analysis});
 }
 
 class StoredAnalysis {
@@ -27,5 +35,3 @@ class StoredAnalysis {
     required this.createdAt,
   });
 }
-
-
