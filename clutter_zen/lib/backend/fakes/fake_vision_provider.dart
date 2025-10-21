@@ -13,5 +13,3 @@ class FakeVisionProvider implements IVisionProvider {
     return const VisionAnalysis(objects: [], labels: ['room', 'objects']);
   }
 }
-
-
