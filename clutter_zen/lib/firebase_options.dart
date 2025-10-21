@@ -15,10 +15,10 @@ class DefaultFirebaseOptions {
       appId: Env.firebaseAppId,
       messagingSenderId: Env.firebaseMessagingSenderId,
       projectId: Env.firebaseProjectId,
-      authDomain: Env.firebaseAuthDomain.isEmpty ? null : Env.firebaseAuthDomain,
-      storageBucket: Env.firebaseStorageBucket.isEmpty ? null : Env.firebaseStorageBucket,
+      authDomain:
+          Env.firebaseAuthDomain.isEmpty ? null : Env.firebaseAuthDomain,
+      storageBucket:
+          Env.firebaseStorageBucket.isEmpty ? null : Env.firebaseStorageBucket,
     );
   }
 }
-
-
