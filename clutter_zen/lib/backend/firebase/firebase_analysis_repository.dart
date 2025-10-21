@@ -8,8 +8,12 @@ class FirebaseAnalysisRepository implements IAnalysisRepository {
   final FirebaseFirestore _db;
 
   @override
-  Future<void> saveAnalysis({required String uid, required String imageUrl, required VisionAnalysis analysis}) async {
-    final clutter = _computeClutterScore(analysis.objects.length, analysis.labels);
+  Future<void> saveAnalysis(
+      {required String uid,
+      required String imageUrl,
+      required VisionAnalysis analysis}) async {
+    final clutter =
+        _computeClutterScore(analysis.objects.length, analysis.labels);
     final title = _deriveTitle(analysis.labels);
     final primaryCategory = _derivePrimaryCategory(analysis);
     final categories = _deriveCategories(analysis);
@@ -46,24 +50,33 @@ class FirebaseAnalysisRepository implements IAnalysisRepository {
         .limit(limit)
         .snapshots()
         .map((snap) => snap.docs.map((d) {
-              final data = d.data() as Map<String, dynamic>;
+              final data = d.data();
               final ts = data['createdAt'] as Timestamp?;
               return StoredAnalysis(
                 id: d.id,
                 imageUrl: (data['imageUrl'] as String?) ?? '',
                 title: (data['title'] as String?) ?? 'Scan',
                 clutterScore: ((data['clutterScore'] as num?) ?? 0).toDouble(),
-                primaryCategory: (data['primaryCategory'] as String?) ?? 'general',
-                categories: (data['categories'] as List?)?.cast<String>() ?? const <String>[],
-                labels: (data['labels'] as List?)?.cast<String>() ?? const <String>[],
+                primaryCategory:
+                    (data['primaryCategory'] as String?) ?? 'general',
+                categories: (data['categories'] as List?)?.cast<String>() ??
+                    const <String>[],
+                labels: (data['labels'] as List?)?.cast<String>() ??
+                    const <String>[],
                 createdAt: ts?.toDate() ?? DateTime.now(),
               );
             }).toList());
   }
 
   @override
-  Future<void> create({required String uid, required String title, required String imageUrl, required String organizedImageUrl, required VisionAnalysis analysis}) async {
-    final clutter = _computeClutterScore(analysis.objects.length, analysis.labels);
+  Future<void> create(
+      {required String uid,
+      required String title,
+      required String imageUrl,
+      required String organizedImageUrl,
+      required VisionAnalysis analysis}) async {
+    final clutter =
+        _computeClutterScore(analysis.objects.length, analysis.labels);
     final primaryCategory = _derivePrimaryCategory(analysis);
     final categories = _deriveCategories(analysis);
     await _db.collection('analyses').add({
@@ -108,10 +121,18 @@ class FirebaseAnalysisRepository implements IAnalysisRepository {
     }
     for (final l in labels) {
       final lower = l.toLowerCase();
-      if (lower.contains('messy') || lower.contains('clutter') || lower.contains('disorganized') || lower.contains('pile') || lower.contains('scattered')) {
+      if (lower.contains('messy') ||
+          lower.contains('clutter') ||
+          lower.contains('disorganized') ||
+          lower.contains('pile') ||
+          lower.contains('scattered')) {
         score += 1.5;
       }
-      if (lower.contains('organized') || lower.contains('tidy') || lower.contains('clean') || lower.contains('minimal') || lower.contains('neat')) {
+      if (lower.contains('organized') ||
+          lower.contains('tidy') ||
+          lower.contains('clean') ||
+          lower.contains('minimal') ||
+          lower.contains('neat')) {
         score -= 1.5;
       }
     }
@@ -128,7 +149,9 @@ class FirebaseAnalysisRepository implements IAnalysisRepository {
 
   String _derivePrimaryCategory(VisionAnalysis analysis) {
     if (analysis.labels.isNotEmpty) return analysis.labels.first.toLowerCase();
-    if (analysis.objects.isNotEmpty) return analysis.objects.first.name.toLowerCase();
+    if (analysis.objects.isNotEmpty) {
+      return analysis.objects.first.name.toLowerCase();
+    }
     return 'general';
   }
 
@@ -143,5 +166,3 @@ class FirebaseAnalysisRepository implements IAnalysisRepository {
     return set.take(6).toList();
   }
 }
-
-
