@@ -22,7 +22,12 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, bool? enableAuthGate, String? initialRoute})
+      : _enableAuthGate = enableAuthGate ?? !Env.disableAuthGate,
+        _initialRoute = initialRoute ?? '/splash';
+
+  final bool _enableAuthGate;
+  final String _initialRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +35,12 @@ class MyApp extends StatelessWidget {
       title: 'Clutter Zen',
       theme: buildAppTheme(),
       routes: AppRoutes.routes,
-      initialRoute: '/splash',
+      initialRoute: _initialRoute,
       builder: (context, child) {
         final content = child ?? const SizedBox.shrink();
-        if (Env.disableAuthGate) return content;
+        if (!_enableAuthGate) return content;
         return AuthGate(child: content);
       },
     );
   }
 }
- 
