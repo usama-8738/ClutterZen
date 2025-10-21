@@ -7,5 +7,3 @@ class FakeGenerateProvider implements IGenerateProvider {
     return imageUrl;
   }
 }
-
-
