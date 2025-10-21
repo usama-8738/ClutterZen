@@ -11,5 +11,3 @@ class FakeLocalStore implements ILocalStore {
     _bools[key] = value;
   }
 }
-
-
