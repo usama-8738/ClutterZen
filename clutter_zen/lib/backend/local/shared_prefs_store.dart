@@ -4,7 +4,8 @@ import '../interfaces/local_store.dart';
 class SharedPrefsStore implements ILocalStore {
   SharedPreferences? _prefs;
 
-  Future<SharedPreferences> _get() async => _prefs ??= await SharedPreferences.getInstance();
+  Future<SharedPreferences> _get() async =>
+      _prefs ??= await SharedPreferences.getInstance();
 
   @override
   Future<bool?> getBool(String key) async {
@@ -18,5 +19,3 @@ class SharedPrefsStore implements ILocalStore {
     await p.setBool(key, value);
   }
 }
-
-
