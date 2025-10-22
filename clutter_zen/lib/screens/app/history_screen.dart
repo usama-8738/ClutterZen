@@ -38,7 +38,8 @@ class HistoryScreen extends StatelessWidget {
                     final title = (d['title'] as String?) ?? 'Scan';
                     final ts = (d['createdAt'] as Timestamp?);
                     final date = ts != null ? _format(ts.toDate()) : '';
-                    final score = (d['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-';
+                    final score =
+                        (d['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-';
                     final chip = (d['primaryCategory'] as String?) ?? 'Home';
                     return _HistoryCard(
                       thumbnailUrl: url,
@@ -47,28 +48,48 @@ class HistoryScreen extends StatelessWidget {
                       category: chip,
                       score: score,
                       onTap: () {
-                        final labels = (d['labels'] as List?)?.cast<String>() ?? const <String>[];
-                        final objectsRaw = (d['objects'] as List?) ?? const <dynamic>[];
+                        final labels = (d['labels'] as List?)?.cast<String>() ??
+                            const <String>[];
+                        final objectsRaw =
+                            (d['objects'] as List?) ?? const <dynamic>[];
                         final objects = objectsRaw.map((o) {
-                          final box = o is Map<String, dynamic> ? (o['box'] as Map<String, dynamic>? ?? const {}) : const <String, dynamic>{};
+                          final box = o is Map<String, dynamic>
+                              ? (o['box'] as Map<String, dynamic>? ?? const {})
+                              : const <String, dynamic>{};
                           return DetectedObject(
-                            name: (o is Map && o['name'] is String) ? o['name'] as String : 'object',
-                            confidence: (o is Map && o['confidence'] is num) ? (o['confidence'] as num).toDouble() : 0.0,
+                            name: (o is Map && o['name'] is String)
+                                ? o['name'] as String
+                                : 'object',
+                            confidence: (o is Map && o['confidence'] is num)
+                                ? (o['confidence'] as num).toDouble()
+                                : 0.0,
                             box: BoundingBoxNormalized(
-                              left: (box['left'] is num) ? (box['left'] as num).toDouble() : 0.0,
-                              top: (box['top'] is num) ? (box['top'] as num).toDouble() : 0.0,
-                              width: (box['width'] is num) ? (box['width'] as num).toDouble() : 0.0,
-                              height: (box['height'] is num) ? (box['height'] as num).toDouble() : 0.0,
+                              left: (box['left'] is num)
+                                  ? (box['left'] as num).toDouble()
+                                  : 0.0,
+                              top: (box['top'] is num)
+                                  ? (box['top'] as num).toDouble()
+                                  : 0.0,
+                              width: (box['width'] is num)
+                                  ? (box['width'] as num).toDouble()
+                                  : 0.0,
+                              height: (box['height'] is num)
+                                  ? (box['height'] as num).toDouble()
+                                  : 0.0,
                             ),
                           );
                         }).toList();
-                        final analysis = VisionAnalysis(objects: objects, labels: labels);
+                        final analysis =
+                            VisionAnalysis(objects: objects, labels: labels);
                         final imageUrl = url ?? '';
                         final organizedUrl = d['organizedImageUrl'] as String?;
                         if (imageUrl.isNotEmpty) {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => ResultsScreen(image: NetworkImage(imageUrl), analysis: analysis, organizedUrl: organizedUrl),
+                              builder: (_) => ResultsScreen(
+                                  image: NetworkImage(imageUrl),
+                                  analysis: analysis,
+                                  organizedUrl: organizedUrl),
                             ),
                           );
                         }
@@ -83,7 +104,13 @@ class HistoryScreen extends StatelessWidget {
 }
 
 class _HistoryCard extends StatelessWidget {
-  const _HistoryCard({required this.thumbnailUrl, required this.title, required this.subtitle, required this.category, required this.score, required this.onTap});
+  const _HistoryCard(
+      {required this.thumbnailUrl,
+      required this.title,
+      required this.subtitle,
+      required this.category,
+      required this.score,
+      required this.onTap});
   final String? thumbnailUrl;
   final String title;
   final String subtitle;
@@ -95,19 +122,21 @@ class _HistoryCard extends StatelessWidget {
     return Material(
       borderRadius: BorderRadius.circular(16),
       elevation: 6,
-      shadowColor: Colors.black.withOpacity(0.15),
+      shadowColor: Colors.black.withAlpha(38),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(16)),
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: thumbnailUrl != null && thumbnailUrl!.isNotEmpty
-                    ? Image.network(thumbnailUrl!, width: 72, height: 72, fit: BoxFit.cover)
+                    ? Image.network(thumbnailUrl!,
+                        width: 72, height: 72, fit: BoxFit.cover)
                     : Container(width: 72, height: 72, color: Colors.grey[300]),
               ),
               const SizedBox(width: 12),
@@ -117,12 +146,20 @@ class _HistoryCard extends StatelessWidget {
                   children: [
                     Text(title, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                    Text(subtitle,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: Colors.grey[600])),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFE7FAF2), borderRadius: BorderRadius.circular(16)),
-                      child: Text(category, style: const TextStyle(color: Color(0xFF10B981))),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFE7FAF2),
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Text(category,
+                          style: const TextStyle(color: Color(0xFF10B981))),
                     ),
                   ],
                 ),
@@ -130,12 +167,27 @@ class _HistoryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Clutter score', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                  Text('Clutter score',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey[600])),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: const Color(0xFF34D399), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: const Color(0xFF34D399).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))]),
-                    child: Text('$score/10', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF34D399),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                              color: const Color(0xFF34D399).withAlpha(102),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4))
+                        ]),
+                    child: Text('$score/10',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
@@ -148,8 +200,19 @@ class _HistoryCard extends StatelessWidget {
 }
 
 String _format(DateTime d) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
   return '${months[d.month - 1]} ${d.day}, ${d.year}';
 }
-
-
