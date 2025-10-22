@@ -32,29 +32,36 @@ class _CaptureScreenState extends State<CaptureScreen> {
       body: uid == null
           ? const Center(child: Text('Please sign in to continue.'))
           : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(uid)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final credits = snapshot.data?.data()?['scanCredits'] as int? ?? 0;
+                final credits =
+                    snapshot.data?.data()?['scanCredits'] as int? ?? 0;
                 final hasCredits = credits > 0;
 
                 return Column(
                   children: [
                     Expanded(
                       child: Center(
-                        child: _image == null ? const Text('Uploaded File Image Placeholder') : Image.file(File(_image!.path)),
+                        child: _image == null
+                            ? const Text('Uploaded File Image Placeholder')
+                            : Image.file(File(_image!.path)),
                       ),
                     ),
                     if (!hasCredits)
                       Container(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withAlpha(26),
                         padding: const EdgeInsets.all(12),
                         child: const Text(
                           'You are out of scan credits. Please upgrade your plan to continue.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.red, fontWeight: FontWeight.bold),
                         ),
                       ),
                     Container(
@@ -63,16 +70,24 @@ class _CaptureScreenState extends State<CaptureScreen> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: _loading ? null : _showImageSourceDialog,
+                              onPressed:
+                                  _loading ? null : _showImageSourceDialog,
                               child: const Text('Upload/Take Photo'),
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: _image == null || _loading || !hasCredits ? null : () => _analyze(uid, credits),
+                              onPressed:
+                                  _image == null || _loading || !hasCredits
+                                      ? null
+                                      : () => _analyze(uid, credits),
                               child: _loading
-                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2))
                                   : const Text('Analyze'),
                             ),
                           ),
@@ -109,7 +124,8 @@ class _CaptureScreenState extends State<CaptureScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final img = await ImagePicker().pickImage(source: source, imageQuality: 80, maxWidth: 1200);
+    final img = await ImagePicker()
+        .pickImage(source: source, imageQuality: 80, maxWidth: 1200);
     if (img != null) {
       setState(() => _image = img);
     }
@@ -135,13 +151,17 @@ class _CaptureScreenState extends State<CaptureScreen> {
               onReady: (context) async {
                 // Upload to storage
                 final now = DateTime.now();
-                final path = 'uploads/$uid/${now.toIso8601String()}-${img.name}';
-                final imageUrl = await Registry.storage.uploadBytes(path: path, data: bytes, contentType: img.mimeType);
+                final path =
+                    'uploads/$uid/${now.toIso8601String()}-${img.name}';
+                final imageUrl = await Registry.storage.uploadBytes(
+                    path: path, data: bytes, contentType: img.mimeType);
 
                 // Analyze in parallel
                 final visionFuture = Registry.vision.analyzeImageUrl(imageUrl);
-                final replicateFuture = Registry.replicate.generateOrganizedImage(imageUrl: imageUrl);
-                final results = await Future.wait([visionFuture, replicateFuture]);
+                final replicateFuture = Registry.replicate
+                    .generateOrganizedImage(imageUrl: imageUrl);
+                final results =
+                    await Future.wait([visionFuture, replicateFuture]);
                 final analysis = results[0] as VisionAnalysis;
                 final organizedUrl = results[1] as String;
 
