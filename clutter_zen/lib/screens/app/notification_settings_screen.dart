@@ -6,10 +6,12 @@ class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
   late final ILocalStore _store;
 
   bool _push = true;
@@ -52,8 +54,18 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.06), borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [const Icon(Icons.notifications_active_outlined), const SizedBox(width: 8), Expanded(child: Text('Stay updated with decluttering tips and scan results', style: Theme.of(context).textTheme.bodyMedium))]),
+                  decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).colorScheme.primary.withAlpha(15),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Row(children: [
+                    const Icon(Icons.notifications_active_outlined),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(
+                            'Stay updated with decluttering tips and scan results',
+                            style: Theme.of(context).textTheme.bodyMedium))
+                  ]),
                 ),
                 const SizedBox(height: 12),
                 Card(
@@ -96,5 +108,3 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     );
   }
 }
-
-
