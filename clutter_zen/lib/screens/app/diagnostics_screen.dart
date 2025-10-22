@@ -22,8 +22,10 @@ class DiagnosticsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           const Text('Tips:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('- Enable Developer Mode on Windows to allow plugin symlinks.'),
-          const Text('- Run flutter clean && flutter pub get after moving directories.'),
+          const Text(
+              '- Enable Developer Mode on Windows to allow plugin symlinks.'),
+          const Text(
+              '- Run flutter clean && flutter pub get after moving directories.'),
         ],
       ),
     );
@@ -33,11 +35,14 @@ class DiagnosticsScreen extends StatelessWidget {
     return ListTile(
       title: Text(label),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-        if (trailing != null) Padding(padding: const EdgeInsets.only(right: 8), child: Text(trailing, style: const TextStyle(color: Colors.grey))),
-        Icon(ok ? Icons.check_circle : Icons.error_outline, color: ok ? Colors.green : Colors.red),
+        if (trailing != null)
+          Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child:
+                  Text(trailing, style: const TextStyle(color: Colors.grey))),
+        Icon(ok ? Icons.check_circle : Icons.error_outline,
+            color: ok ? Colors.green : Colors.red),
       ]),
     );
   }
 }
-
-
