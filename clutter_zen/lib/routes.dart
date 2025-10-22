@@ -58,5 +58,3 @@ class AppRoutes {
     {'name': 'history', 'route': '/history'},
   ];
 }
-
-
