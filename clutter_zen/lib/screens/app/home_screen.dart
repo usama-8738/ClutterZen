@@ -49,10 +49,18 @@ class _TopBar extends StatelessWidget {
         const Icon(Icons.auto_awesome, size: 24),
         if (uid != null)
           StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .snapshots(),
             builder: (context, snap) {
-              final credits = snap.data?.data()?['scanCredits']?.toString() ?? '0';
-              return Row(children: [const Icon(Icons.camera_alt_outlined), const SizedBox(width: 4), Text(credits)]);
+              final credits =
+                  snap.data?.data()?['scanCredits']?.toString() ?? '0';
+              return Row(children: [
+                const Icon(Icons.camera_alt_outlined),
+                const SizedBox(width: 4),
+                Text(credits)
+              ]);
             },
           ),
       ],
@@ -68,7 +76,8 @@ class _TopGradientBar extends StatelessWidget {
       height: 12,
       margin: const EdgeInsets.only(top: 4),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF28A9FF), Color(0xFF48E58B)]),
+        gradient: const LinearGradient(
+            colors: [Color(0xFF28A9FF), Color(0xFF48E58B)]),
         borderRadius: BorderRadius.circular(24),
       ),
     );
@@ -83,7 +92,9 @@ class _GreetingRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _DisplayName(),
-        IconButton(onPressed: () => Navigator.of(context).pushNamed('/settings'), icon: const Icon(Icons.settings)),
+        IconButton(
+            onPressed: () => Navigator.of(context).pushNamed('/settings'),
+            icon: const Icon(Icons.settings)),
       ],
     );
   }
@@ -127,7 +138,10 @@ class _TitleText extends StatelessWidget {
     return Center(
       child: Text(
         'Declutter Anything!',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        style: Theme.of(context)
+            .textTheme
+            .titleLarge
+            ?.copyWith(fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
       ),
     );
@@ -146,7 +160,8 @@ class _PrimaryActions extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24)),
               minimumSize: const Size(double.infinity, 48),
               elevation: 0,
             ),
@@ -161,7 +176,8 @@ class _PrimaryActions extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24)),
               minimumSize: const Size(double.infinity, 48),
               elevation: 0,
             ),
@@ -184,7 +200,7 @@ class _ShadowButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: (dark ? Colors.black : Colors.grey).withOpacity(0.4),
+            color: (dark ? Colors.black : Colors.grey).withAlpha(102),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -201,7 +217,11 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Text(title, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)),
+        child: Text(title,
+            style: Theme.of(context)
+                .textTheme
+                .bodyLarge
+                ?.copyWith(fontWeight: FontWeight.w600)),
       );
 }
 
@@ -221,17 +241,23 @@ class _RecentCategories extends StatelessWidget {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: query.snapshots(),
       builder: (context, snap) {
-        if (!snap.hasData) return const SizedBox(height: 170, child: Center(child: CircularProgressIndicator()));
+        if (!snap.hasData) {
+          return const SizedBox(
+              height: 170, child: Center(child: CircularProgressIndicator()));
+        }
         final docs = snap.data!.docs;
         // Derive categories list from analyses' categories fields
         final Map<String, String> catToImage = {};
         for (final d in docs) {
           final img = d.data()['imageUrl'] as String?;
-          final cats = (d.data()['categories'] as List?)?.cast<String>() ?? const <String>[];
+          final cats = (d.data()['categories'] as List?)?.cast<String>() ??
+              const <String>[];
           for (final c in cats) {
             catToImage.putIfAbsent(c, () => img ?? '');
           }
-          if (catToImage.length >= 10) break;
+          if (catToImage.length >= 10) {
+            break;
+          }
         }
         final items = catToImage.entries.take(10).toList();
         return SizedBox(
@@ -249,7 +275,10 @@ class _RecentCategories extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 4)),
+                    BoxShadow(
+                        color: Colors.black.withAlpha(20),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4)),
                   ],
                 ),
                 child: Column(
@@ -257,13 +286,20 @@ class _RecentCategories extends StatelessWidget {
                   children: [
                     Expanded(
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
-                        child: img.isNotEmpty ? Image.network(img, fit: BoxFit.cover) : Container(color: Colors.grey[300]),
+                        borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12)),
+                        child: img.isNotEmpty
+                            ? Image.network(img, fit: BoxFit.cover)
+                            : Container(color: Colors.grey[300]),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(12),
-                      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      child: Text(label,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
                     ),
                   ],
                 ),
@@ -290,25 +326,37 @@ class _RecentScans extends StatelessWidget {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: query.snapshots(),
       builder: (context, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snap.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final docs = snap.data!.docs;
         return Column(
           children: [
             for (final d in docs)
               Card(
                 child: ListTile(
-                  leading: ClipRRect(borderRadius: BorderRadius.circular(6), child: (d.data()['imageUrl'] as String?)?.isNotEmpty == true
-                      ? Image.network(d.data()['imageUrl'] as String, width: 56, height: 56, fit: BoxFit.cover)
-                      : Container(width: 56, height: 56, color: Colors.grey[300])),
+                  leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child:
+                          (d.data()['imageUrl'] as String?)?.isNotEmpty == true
+                              ? Image.network(d.data()['imageUrl'] as String,
+                                  width: 56, height: 56, fit: BoxFit.cover)
+                              : Container(
+                                  width: 56,
+                                  height: 56,
+                                  color: Colors.grey[300])),
                   title: Text((d.data()['title'] as String?) ?? 'Scan'),
-                  subtitle: Text('Clutter Score: ${(d.data()['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-'}'),
+                  subtitle: Text(
+                      'Clutter Score: ${(d.data()['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-'}'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     final data = d.data();
                     final url = (data['imageUrl'] as String?) ?? '';
                     final organized = data['organizedImageUrl'] as String?;
-                    final labels = (data['labels'] as List?)?.cast<String>() ?? const <String>[];
-                    final objectsRaw = (data['objects'] as List?) ?? const <dynamic>[];
+                    final labels = (data['labels'] as List?)?.cast<String>() ??
+                        const <String>[];
+                    final objectsRaw =
+                        (data['objects'] as List?) ?? const <dynamic>[];
                     final objects = objectsRaw.map((o) {
                       final box = o['box'] as Map<String, dynamic>? ?? const {};
                       return DetectedObject(
@@ -322,11 +370,15 @@ class _RecentScans extends StatelessWidget {
                         ),
                       );
                     }).toList();
-                    final analysis = VisionAnalysis(objects: objects, labels: labels);
+                    final analysis =
+                        VisionAnalysis(objects: objects, labels: labels);
                     if (url.isNotEmpty) {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => ResultsScreen(image: NetworkImage(url), analysis: analysis, organizedUrl: organized),
+                          builder: (_) => ResultsScreen(
+                              image: NetworkImage(url),
+                              analysis: analysis,
+                              organizedUrl: organized),
                         ),
                       );
                     }
@@ -351,7 +403,7 @@ class _LoadMore extends StatefulWidget {
 }
 
 class _LoadMoreState extends State<_LoadMore> {
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> _extra = [];
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> _extra = [];
   bool _loading = false;
   bool _done = false;
   @override
@@ -361,7 +413,12 @@ class _LoadMoreState extends State<_LoadMore> {
       alignment: Alignment.centerLeft,
       child: TextButton(
         onPressed: _loading ? null : _load,
-        child: _loading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Load more'),
+        child: _loading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2))
+            : const Text('Load more'),
       ),
     );
   }
@@ -385,5 +442,3 @@ class _LoadMoreState extends State<_LoadMore> {
     }
   }
 }
-
-
