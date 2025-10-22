@@ -31,7 +31,7 @@ class BoundingBoxNormalized {
       width: (maxX - minX).clamp(0.0, 1.0),
       height: (maxY - minY).clamp(0.0, 1.0),
     );
-    }
+  }
 }
 
 class DetectedObject {
@@ -55,5 +55,3 @@ class VisionAnalysis {
     required this.labels,
   });
 }
-
-
