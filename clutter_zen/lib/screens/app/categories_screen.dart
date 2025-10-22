@@ -26,20 +26,24 @@ class CategoriesScreen extends StatelessWidget {
           for (final i in items)
             InkWell(
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => CategoryDetailScreen(title: i['title'] as String)),
+                MaterialPageRoute(
+                    builder: (_) =>
+                        CategoryDetailScreen(title: i['title'] as String)),
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(i['icon'] as IconData, size: 36, color: Theme.of(context).colorScheme.primary),
+                    Icon(i['icon'] as IconData,
+                        size: 36, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(height: 10),
-                    Text(i['title'] as String, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text(i['title'] as String,
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -68,11 +72,18 @@ class CategoryDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Recommended steps', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          Text('Recommended steps',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           for (final t in tips)
             Card(
-              child: ListTile(leading: const Icon(Icons.check_circle_outline, color: Colors.green), title: Text(t)),
+              child: ListTile(
+                  leading: const Icon(Icons.check_circle_outline,
+                      color: Colors.green),
+                  title: Text(t)),
             ),
           const SizedBox(height: 12),
           ElevatedButton.icon(
@@ -85,5 +96,3 @@ class CategoryDetailScreen extends StatelessWidget {
     );
   }
 }
-
-
