@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../app_firebase.dart';
 import '../../env.dart';
 
 class DiagnosticsScreen extends StatelessWidget {
@@ -9,7 +9,7 @@ class DiagnosticsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fbInitialized = Firebase.apps.isNotEmpty;
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AppFirebase.auth.currentUser;
     return Scaffold(
       appBar: AppBar(title: const Text('Diagnostics')),
       body: ListView(

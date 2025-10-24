@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../app_firebase.dart';
 import '../../services/user_service.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -24,7 +24,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AppFirebase.auth.currentUser?.uid;
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Scan'),
@@ -32,7 +32,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       body: uid == null
           ? const Center(child: Text('Please sign in to continue.'))
           : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance
+              stream: AppFirebase.firestore
                   .collection('users')
                   .doc(uid)
                   .snapshots(),

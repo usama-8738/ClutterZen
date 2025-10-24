@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../app_firebase.dart';
 import 'package:flutter/material.dart';
 import '../../services/user_service.dart';
 
@@ -43,7 +43,7 @@ class PricingScreen extends StatelessWidget {
   }
 
   Future<void> _updateCredits(int amount) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AppFirebase.auth.currentUser?.uid;
     if (uid == null) return;
     await UserService.updateCredits(uid, amount);
   }

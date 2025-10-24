@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../app_firebase.dart';
 import '../../models/vision_models.dart';
 import '../results/results_screen.dart';
 
@@ -9,13 +9,13 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AppFirebase.auth.currentUser?.uid;
     return Scaffold(
       appBar: AppBar(title: const Text('Scan History')),
       body: uid == null
           ? const Center(child: Text('Sign in to view history'))
           : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: FirebaseFirestore.instance
+              stream: AppFirebase.firestore
                   .collection('analyses')
                   .where('uid', isEqualTo: uid)
                   .orderBy('createdAt', descending: true)

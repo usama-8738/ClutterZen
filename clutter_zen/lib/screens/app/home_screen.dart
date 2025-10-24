@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../app_firebase.dart';
 import '../../models/vision_models.dart';
 import '../results/results_screen.dart';
 
@@ -41,18 +42,16 @@ class _TopBar extends StatelessWidget {
   const _TopBar();
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AppFirebase.auth.currentUser?.uid;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(onPressed: () {}, icon: const Icon(Icons.menu)),
-        const Icon(Icons.auto_awesome, size: 24),
+        Image.asset('assets/clutterzen-logo-color.png', height: 28),
         if (uid != null)
           StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance
-                .collection('users')
-                .doc(uid)
-                .snapshots(),
+            stream:
+                AppFirebase.firestore.collection('users').doc(uid).snapshots(),
             builder: (context, snap) {
               final credits =
                   snap.data?.data()?['scanCredits']?.toString() ?? '0';
@@ -104,7 +103,7 @@ class _DisplayName extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: AppFirebase.auth.authStateChanges(),
       builder: (context, snap) {
         final name = snap.data?.displayName ?? '[Display Name]';
         return Text(name, style: Theme.of(context).textTheme.titleMedium);
@@ -115,6 +114,7 @@ class _DisplayName extends StatelessWidget {
 
 class _CenterLogo extends StatelessWidget {
   const _CenterLogo();
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -125,7 +125,13 @@ class _CenterLogo extends StatelessWidget {
           color: Colors.black,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.auto_awesome, color: Colors.white, size: 32),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Image.asset(
+            'assets/clutterzen-logo-color.png',
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
     );
   }
@@ -229,11 +235,11 @@ class _RecentCategories extends StatelessWidget {
   const _RecentCategories();
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AppFirebase.auth.currentUser?.uid;
     if (uid == null) {
       return const SizedBox.shrink();
     }
-    final query = FirebaseFirestore.instance
+    final query = AppFirebase.firestore
         .collection('analyses')
         .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
@@ -316,9 +322,9 @@ class _RecentScans extends StatelessWidget {
   const _RecentScans();
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = AppFirebase.auth.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
-    final query = FirebaseFirestore.instance
+    final query = AppFirebase.firestore
         .collection('analyses')
         .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
@@ -426,7 +432,7 @@ class _LoadMoreState extends State<_LoadMore> {
   Future<void> _load() async {
     if (widget.last == null) return;
     setState(() => _loading = true);
-    final more = await FirebaseFirestore.instance
+    final more = await AppFirebase.firestore
         .collection('analyses')
         .where('uid', isEqualTo: widget.uid)
         .orderBy('createdAt', descending: true)
