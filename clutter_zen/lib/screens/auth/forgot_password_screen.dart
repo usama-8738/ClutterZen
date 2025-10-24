@@ -1,5 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../../app_firebase.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -22,26 +23,52 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         children: [
           const Text('Enter your email and we\'ll send a reset link.'),
           const SizedBox(height: 12),
-          TextField(controller: _email, decoration: const InputDecoration(hintText: 'Email', filled: true, fillColor: Color(0xFFF2F4F7), border: OutlineInputBorder(borderSide: BorderSide.none, borderRadius: BorderRadius.all(Radius.circular(12))))),
+          TextField(
+              controller: _email,
+              decoration: const InputDecoration(
+                  hintText: 'Email',
+                  filled: true,
+                  fillColor: Color(0xFFF2F4F7),
+                  border: OutlineInputBorder(
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.all(Radius.circular(12))))),
           const SizedBox(height: 16),
-          if (_msg != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(_msg!)),
-          ElevatedButton(onPressed: _loading ? null : _send, child: _loading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Send Reset Link')),
+          if (_msg != null)
+            Padding(
+                padding: const EdgeInsets.only(bottom: 8), child: Text(_msg!)),
+          ElevatedButton(
+              onPressed: _loading ? null : _send,
+              child: _loading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Send Reset Link')),
         ],
       ),
     );
   }
 
   Future<void> _send() async {
-    setState(() { _loading = true; _msg = null; });
+    setState(() {
+      _loading = true;
+      _msg = null;
+    });
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: _email.text.trim());
-      setState(() { _msg = 'Reset email sent.'; });
+      await AppFirebase.auth.sendPasswordResetEmail(email: _email.text.trim());
+      setState(() {
+        _msg = 'Reset email sent.';
+      });
     } catch (e) {
-      setState(() { _msg = 'Failed: $e'; });
+      setState(() {
+        _msg = 'Failed: $e';
+      });
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 }
-
-
