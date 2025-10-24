@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../app_firebase.dart';
 import '../env.dart';
 import 'interfaces/analysis_repository.dart';
 import 'interfaces/storage_repository.dart';
@@ -26,7 +26,7 @@ class BackendRegistry {
   static IAnalysisRepository analysisRepository() {
     // If Firestore available, prefer Firebase; otherwise fall back to fake
     try {
-      return FirebaseAnalysisRepository(FirebaseFirestore.instance);
+      return FirebaseAnalysisRepository(AppFirebase.firestore);
     } catch (_) {
       return FakeAnalysisRepository();
     }
@@ -67,15 +67,34 @@ class BackendRegistry {
 
 // Registry class for easy access to services
 class Registry {
-  static final _analysis = BackendRegistry.analysisRepository();
-  static final _storage = BackendRegistry.storageRepository();
-  static final _vision = BackendRegistry.visionProvider();
-  static final _replicate = BackendRegistry.generateProvider();
+  static IAnalysisRepository _analysis = BackendRegistry.analysisRepository();
+  static IStorageRepository _storage = BackendRegistry.storageRepository();
+  static IVisionProvider _vision = BackendRegistry.visionProvider();
+  static IGenerateProvider _replicate = BackendRegistry.generateProvider();
 
   static IAnalysisRepository get analysis => _analysis;
   static IStorageRepository get storage => _storage;
   static IVisionProvider get vision => _vision;
   static IGenerateProvider get replicate => _replicate;
+
+  static void configure({
+    IAnalysisRepository? analysis,
+    IStorageRepository? storage,
+    IVisionProvider? vision,
+    IGenerateProvider? replicate,
+  }) {
+    if (analysis != null) _analysis = analysis;
+    if (storage != null) _storage = storage;
+    if (vision != null) _vision = vision;
+    if (replicate != null) _replicate = replicate;
+  }
+
+  static void reset() {
+    _analysis = BackendRegistry.analysisRepository();
+    _storage = BackendRegistry.storageRepository();
+    _vision = BackendRegistry.visionProvider();
+    _replicate = BackendRegistry.generateProvider();
+  }
 }
 
 class _VisionAdapter implements IVisionProvider {
