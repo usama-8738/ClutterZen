@@ -8,7 +8,8 @@ class DetectionOverlay extends StatelessWidget {
     this.image,
     this.imageUrl,
     required this.objects,
-  }) : assert(image != null || imageUrl != null, 'Provide either image or imageUrl');
+  }) : assert(image != null || imageUrl != null,
+            'Provide either image or imageUrl');
 
   final ImageProvider? image;
   final String? imageUrl;
@@ -33,20 +34,24 @@ class DetectionOverlay extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.blueAccent, width: 2),
-                color: Colors.blueAccent.withOpacity(0.12),
+                color: Colors.blueAccent.withAlpha(31),
               ),
               child: Align(
                 alignment: Alignment.topLeft,
                 child: Container(
                   margin: const EdgeInsets.all(4),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.blueAccent,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     '${obj.name} ${(obj.confidence * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -57,5 +62,3 @@ class DetectionOverlay extends StatelessWidget {
     );
   }
 }
-
-

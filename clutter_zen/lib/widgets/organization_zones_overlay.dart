@@ -61,13 +61,15 @@ class OrganizationZonesOverlay extends StatelessWidget {
     return [
       _Zone(
         name: 'Primary Zone',
-        box: const BoundingBoxNormalized(left: 0.1, top: 0.1, width: 0.4, height: 0.8),
-        color: Colors.blue.withOpacity(0.4),
+        box: const BoundingBoxNormalized(
+            left: 0.1, top: 0.1, width: 0.4, height: 0.8),
+        color: Colors.blue.withAlpha(102),
       ),
       _Zone(
         name: 'Secondary Zone',
-        box: const BoundingBoxNormalized(left: 0.6, top: 0.2, width: 0.3, height: 0.6),
-        color: Colors.green.withOpacity(0.4),
+        box: const BoundingBoxNormalized(
+            left: 0.6, top: 0.2, width: 0.3, height: 0.6),
+        color: Colors.green.withAlpha(102),
       ),
     ];
   }
