@@ -47,6 +47,8 @@ dependencies:
   sign_in_with_apple:
   crypto:
   shared_preferences:
+  fake_cloud_firestore: ^2.4.0
+  firebase_auth_mocks: ^0.13.0
 
 dev_dependencies:
   flutter_test:
@@ -73,9 +75,9 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/clutterzen-logo-color.png
+    - assets/clutterzen-logo-white.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
