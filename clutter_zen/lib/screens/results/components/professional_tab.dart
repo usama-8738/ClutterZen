@@ -19,5 +19,3 @@ class ProfessionalTab extends StatelessWidget {
     );
   }
 }
-
-
