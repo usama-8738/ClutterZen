@@ -1,24 +1,36 @@
-import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'theme.dart';
-import 'firebase_options.dart';
-import 'screens/auth/auth_gate.dart';
-import 'routes.dart';
+import 'package:flutter/material.dart';
+
+import 'app_firebase.dart';
+import 'demo/demo_mode.dart';
 import 'env.dart';
+import 'firebase_options.dart';
+import 'routes.dart';
+import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    final opts = DefaultFirebaseOptions.currentPlatformOrNull;
-    if (opts != null) {
-      await Firebase.initializeApp(options: opts);
-    } else {
-      await Firebase.initializeApp();
+
+  if (DemoMode.enabled) {
+    await DemoMode.configure();
+  } else {
+    try {
+      final opts = DefaultFirebaseOptions.currentPlatformOrNull;
+      if (opts != null) {
+        await Firebase.initializeApp(options: opts);
+      } else {
+        await Firebase.initializeApp();
+      }
+    } catch (_) {
+      // Firebase not configured yet; continue without blocking dev flow.
     }
-  } catch (_) {
-    // Firebase not configured yet; continue without blocking dev flow.
   }
-  runApp(const MyApp());
+
+  runApp(MyApp(
+    enableAuthGate: DemoMode.enabled ? false : null,
+    initialRoute: DemoMode.enabled ? DemoMode.initialRoute : null,
+  ));
 }
 
 class MyApp extends StatelessWidget {
@@ -31,15 +43,31 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Clutter Zen',
-      theme: buildAppTheme(),
-      routes: AppRoutes.routes,
-      initialRoute: _initialRoute,
-      builder: (context, child) {
-        final content = child ?? const SizedBox.shrink();
-        if (!_enableAuthGate) return content;
-        return AuthGate(child: content);
+    if (!_enableAuthGate) {
+      return MaterialApp(
+        title: 'Clutter Zen',
+        theme: buildAppTheme(),
+        routes: AppRoutes.routes,
+        initialRoute: _initialRoute,
+      );
+    }
+
+    return StreamBuilder<User?>(
+      stream: AppFirebase.auth.authStateChanges(),
+      builder: (context, snapshot) {
+        final route = snapshot.connectionState == ConnectionState.waiting
+            ? '/splash'
+            : snapshot.hasData
+                ? '/home'
+                : '/sign-in';
+
+        return MaterialApp(
+          key: ValueKey(route),
+          title: 'Clutter Zen',
+          theme: buildAppTheme(),
+          routes: AppRoutes.routes,
+          initialRoute: route,
+        );
       },
     );
   }
