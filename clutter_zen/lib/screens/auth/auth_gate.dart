@@ -1,5 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' show User;
 import 'package:flutter/material.dart';
+
+import '../../app_firebase.dart';
 import '../auth/sign_in_screen.dart';
 
 class AuthGate extends StatelessWidget {
@@ -10,10 +12,11 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: AppFirebase.auth.authStateChanges(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
         }
         if (snap.hasData) {
           return child;
@@ -23,6 +26,3 @@ class AuthGate extends StatelessWidget {
     );
   }
 }
- 
-
-
