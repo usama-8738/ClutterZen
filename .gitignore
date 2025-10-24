@@ -6,6 +6,13 @@
 # Ignore requirements directory with mockups/docs
 requirements/
 
+# Assistant / IDE artifacts
+**/.continue/
+clutter_zen/devtools_options.yaml
+
+# Firebase config that should stay local
+clutter_zen/android/app/google-services.json
+
 # Flutter/Dart typical ignores (safe defaults)
 .dart_tool/
 .flutter-plugins
