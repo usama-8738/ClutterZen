@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../app_firebase.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -13,10 +15,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed('/home');
-    });
+    Timer(const Duration(seconds: 2), _navigateNext);
+  }
+
+  void _navigateNext() {
+    if (!mounted) return;
+    final user = AppFirebase.auth.currentUser;
+    final target = user == null ? '/sign-in' : '/home';
+    Navigator.of(context).pushNamedAndRemoveUntil(target, (route) => false);
   }
 
   @override
@@ -36,16 +42,35 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.auto_awesome, size: 80, color: Colors.white),
-            const SizedBox(height: 16),
-            Text('Clutter Zen', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+            Image.asset(
+              'assets/clutterzen-logo-white.png',
+              height: 120,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Universal Clutter',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white)),
+            Text(
+              'AI-Powered Decluttering',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 48),
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                  strokeWidth: 3, color: Colors.white),
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-
