@@ -9,10 +9,14 @@ class AnalysisRepository {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
 
-  Future<void> saveAnalysis({required String imageUrl, required VisionAnalysis analysis, String? organizedImageUrl}) async {
+  Future<void> saveAnalysis(
+      {required String imageUrl,
+      required VisionAnalysis analysis,
+      String? organizedImageUrl}) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Not signed in');
-    final clutter = _computeClutterScore(analysis.objects.length, analysis.labels);
+    final clutter =
+        _computeClutterScore(analysis.objects.length, analysis.labels);
     final title = _deriveTitle(analysis.labels);
     final primaryCategory = _derivePrimaryCategory(analysis);
     final categories = _deriveCategories(analysis);
@@ -24,16 +28,18 @@ class AnalysisRepository {
       'primaryCategory': primaryCategory,
       'categories': categories,
       'labels': analysis.labels,
-      'objects': analysis.objects.map((o) => {
-        'name': o.name,
-        'confidence': o.confidence,
-        'box': {
-          'left': o.box.left,
-          'top': o.box.top,
-          'width': o.box.width,
-          'height': o.box.height,
-        }
-      }).toList(),
+      'objects': analysis.objects
+          .map((o) => {
+                'name': o.name,
+                'confidence': o.confidence,
+                'box': {
+                  'left': o.box.left,
+                  'top': o.box.top,
+                  'width': o.box.width,
+                  'height': o.box.height,
+                }
+              })
+          .toList(),
       'createdAt': FieldValue.serverTimestamp(),
     };
     if (organizedImageUrl != null && organizedImageUrl.isNotEmpty) {
@@ -42,10 +48,14 @@ class AnalysisRepository {
     await _db.collection('analyses').add(data);
   }
 
-  Future<String> saveAnalysisAndReturnId({required String imageUrl, required VisionAnalysis analysis, String? organizedImageUrl}) async {
+  Future<String> saveAnalysisAndReturnId(
+      {required String imageUrl,
+      required VisionAnalysis analysis,
+      String? organizedImageUrl}) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Not signed in');
-    final clutter = _computeClutterScore(analysis.objects.length, analysis.labels);
+    final clutter =
+        _computeClutterScore(analysis.objects.length, analysis.labels);
     final title = _deriveTitle(analysis.labels);
     final primaryCategory = _derivePrimaryCategory(analysis);
     final categories = _deriveCategories(analysis);
@@ -57,16 +67,18 @@ class AnalysisRepository {
       'primaryCategory': primaryCategory,
       'categories': categories,
       'labels': analysis.labels,
-      'objects': analysis.objects.map((o) => {
-        'name': o.name,
-        'confidence': o.confidence,
-        'box': {
-          'left': o.box.left,
-          'top': o.box.top,
-          'width': o.box.width,
-          'height': o.box.height,
-        }
-      }).toList(),
+      'objects': analysis.objects
+          .map((o) => {
+                'name': o.name,
+                'confidence': o.confidence,
+                'box': {
+                  'left': o.box.left,
+                  'top': o.box.top,
+                  'width': o.box.width,
+                  'height': o.box.height,
+                }
+              })
+          .toList(),
       'createdAt': FieldValue.serverTimestamp(),
     };
     if (organizedImageUrl != null && organizedImageUrl.isNotEmpty) {
@@ -76,8 +88,12 @@ class AnalysisRepository {
     return ref.id;
   }
 
-  Future<void> updateOrganizedImage(String docId, String organizedImageUrl) async {
-    await _db.collection('analyses').doc(docId).update({'organizedImageUrl': organizedImageUrl});
+  Future<void> updateOrganizedImage(
+      String docId, String organizedImageUrl) async {
+    await _db
+        .collection('analyses')
+        .doc(docId)
+        .update({'organizedImageUrl': organizedImageUrl});
   }
 
   double _computeClutterScore(int objectCount, List<String> labels) {
@@ -97,14 +113,23 @@ class AnalysisRepository {
     }
     for (final l in labels) {
       final lower = l.toLowerCase();
-      if (lower.contains('messy') || lower.contains('clutter') || lower.contains('disorganized') || lower.contains('pile') || lower.contains('scattered')) {
+      if (lower.contains('messy') ||
+          lower.contains('clutter') ||
+          lower.contains('disorganized') ||
+          lower.contains('pile') ||
+          lower.contains('scattered')) {
         score += 1.5;
       }
-      if (lower.contains('organized') || lower.contains('tidy') || lower.contains('clean') || lower.contains('minimal') || lower.contains('neat')) {
+      if (lower.contains('organized') ||
+          lower.contains('tidy') ||
+          lower.contains('clean') ||
+          lower.contains('minimal') ||
+          lower.contains('neat')) {
         score -= 1.5;
       }
     }
-    if (score < 1.0) score = 1.0; if (score > 10.0) score = 10.0;
+    if (score < 1.0) score = 1.0;
+    if (score > 10.0) score = 10.0;
     return double.parse(score.toStringAsFixed(1));
   }
 
@@ -116,7 +141,9 @@ class AnalysisRepository {
 
   String _derivePrimaryCategory(VisionAnalysis analysis) {
     if (analysis.labels.isNotEmpty) return analysis.labels.first.toLowerCase();
-    if (analysis.objects.isNotEmpty) return analysis.objects.first.name.toLowerCase();
+    if (analysis.objects.isNotEmpty) {
+      return analysis.objects.first.name.toLowerCase();
+    }
     return 'general';
   }
 
@@ -131,5 +158,3 @@ class AnalysisRepository {
     return set.take(6).toList();
   }
 }
-
-

@@ -4,7 +4,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ReplicateService {
-  ReplicateService({required this.apiToken, http.Client? client, this.timeout = const Duration(seconds: 20), this.maxPollSeconds = 60})
+  ReplicateService(
+      {required this.apiToken,
+      http.Client? client,
+      this.timeout = const Duration(seconds: 20),
+      this.maxPollSeconds = 60})
       : _client = client ?? http.Client();
 
   final String apiToken;
@@ -22,17 +26,20 @@ class ReplicateService {
       },
       body: jsonEncode({
         // SDXL image-to-image refiner version
-        'version': '39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
+        'version':
+            '39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
         'input': {
           'image': imageUrl,
-          'prompt': 'same space perfectly organized and tidy, clean surfaces, everything stored, high quality, photorealistic',
+          'prompt':
+              'same space perfectly organized and tidy, clean surfaces, everything stored, high quality, photorealistic',
           'prompt_strength': 0.7,
           'num_inference_steps': 28,
         }
       }),
     );
     if (start.statusCode != 201) {
-      throw Exception('Replicate start failed: ${start.statusCode} ${start.body}');
+      throw Exception(
+          'Replicate start failed: ${start.statusCode} ${start.body}');
     }
     final startJson = jsonDecode(start.body) as Map<String, dynamic>;
     final String id = (startJson['id'] as String);
@@ -62,5 +69,3 @@ class ReplicateService {
     throw Exception('Replicate timed out');
   }
 }
-
-

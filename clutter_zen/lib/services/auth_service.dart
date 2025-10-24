@@ -12,8 +12,10 @@ class AuthService {
     return _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
-  Future<UserCredential> registerWithEmail(String email, String password) async {
-    return _auth.createUserWithEmailAndPassword(email: email, password: password);
+  Future<UserCredential> registerWithEmail(
+      String email, String password) async {
+    return _auth.createUserWithEmailAndPassword(
+        email: email, password: password);
   }
 
   Future<UserCredential> signInWithGoogle() async {
@@ -29,5 +31,3 @@ class AuthService {
     await _auth.signOut();
   }
 }
-
-
