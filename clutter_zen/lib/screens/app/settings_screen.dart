@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
+import '../../app_firebase.dart';
 import '../../env.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -7,7 +8,7 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = AppFirebase.auth.currentUser;
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(
@@ -130,7 +131,7 @@ class SettingsScreen extends StatelessWidget {
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
             onTap: () async {
-              await FirebaseAuth.instance.signOut();
+              await AppFirebase.auth.signOut();
               if (context.mounted) {
                 Navigator.of(context)
                     .pushNamedAndRemoveUntil('/splash', (_) => false);
