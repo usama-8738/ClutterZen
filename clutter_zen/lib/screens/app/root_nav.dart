@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../widgets/app_drawer.dart';
 import 'home_screen.dart';
 import 'history_screen.dart';
 import 'settings_screen.dart';
@@ -23,6 +24,7 @@ class _RootNavState extends State<RootNav> {
     ];
 
     return Scaffold(
+      drawer: const AppDrawer(),
       body: pages[_index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
