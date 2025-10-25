@@ -10,30 +10,36 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: const [
-        SizedBox(height: 8),
-        _TopBar(),
-        _TopGradientBar(),
-        SizedBox(height: 12),
-        _GreetingRow(),
-        SizedBox(height: 12),
-        _CenterLogo(),
-        SizedBox(height: 12),
-        _TitleText(),
-        SizedBox(height: 8),
-        _PrimaryActions(),
-        SizedBox(height: 16),
-        _SectionHeader('Recent Categories'),
-        SizedBox(height: 8),
-        _RecentCategories(),
-        SizedBox(height: 16),
-        _SectionHeader('Recent Scans'),
-        SizedBox(height: 8),
-        _RecentScans(),
-        SizedBox(height: 16),
-      ],
+    return SafeArea(
+      top: true,
+      bottom: false,
+      left: false,
+      right: false,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: const [
+          SizedBox(height: 8),
+          _TopBar(),
+          _TopGradientBar(),
+          SizedBox(height: 12),
+          _GreetingRow(),
+          SizedBox(height: 12),
+          _CenterLogo(),
+          SizedBox(height: 12),
+          _TitleText(),
+          SizedBox(height: 8),
+          _PrimaryActions(),
+          SizedBox(height: 16),
+          _SectionHeader('Recent Categories'),
+          SizedBox(height: 8),
+          _RecentCategories(),
+          SizedBox(height: 16),
+          _SectionHeader('Recent Scans'),
+          SizedBox(height: 8),
+          _RecentScans(),
+          SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
@@ -44,25 +50,67 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = AppFirebase.auth.currentUser?.uid;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        IconButton(onPressed: () {}, icon: const Icon(Icons.menu)),
-        Image.asset('assets/clutterzen-logo-color.png', height: 28),
-        if (uid != null)
-          StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream:
-                AppFirebase.firestore.collection('users').doc(uid).snapshots(),
-            builder: (context, snap) {
-              final credits =
-                  snap.data?.data()?['scanCredits']?.toString() ?? '0';
-              return Row(children: [
-                const Icon(Icons.camera_alt_outlined),
-                const SizedBox(width: 4),
-                Text(credits)
-              ]);
-            },
-          ),
+        IconButton(
+            onPressed: () => Scaffold.maybeOf(context)?.openDrawer(),
+            icon: const Icon(Icons.menu)),
+        const Spacer(),
+        _CreditsIndicator(uid: uid),
       ],
+    );
+  }
+}
+
+class _CreditsIndicator extends StatelessWidget {
+  const _CreditsIndicator({required this.uid});
+  final String? uid;
+
+  @override
+  Widget build(BuildContext context) {
+    if (uid == null) {
+      return const _CreditsChip(text: '0');
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: AppFirebase.firestore.collection('users').doc(uid).snapshots(),
+      builder: (context, snap) {
+        final credits = snap.data?.data()?['scanCredits'];
+        final text = credits == null ? '0' : credits.toString();
+        return _CreditsChip(text: text);
+      },
+    );
+  }
+}
+
+class _CreditsChip extends StatelessWidget {
+  const _CreditsChip({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.camera_alt_outlined,
+              size: 18, color: colorScheme.onSurfaceVariant),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -318,8 +366,26 @@ class _RecentCategories extends StatelessWidget {
   }
 }
 
-class _RecentScans extends StatelessWidget {
+enum _ScanViewMode { list, grid2, grid3 }
+
+class _RecentScans extends StatefulWidget {
   const _RecentScans();
+
+  @override
+  State<_RecentScans> createState() => _RecentScansState();
+}
+
+class _RecentScansState extends State<_RecentScans> {
+  final TextEditingController _searchController = TextEditingController();
+  _ScanViewMode _viewMode = _ScanViewMode.list;
+  String? _selectedCategory;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = AppFirebase.auth.currentUser?.uid;
@@ -329,71 +395,339 @@ class _RecentScans extends StatelessWidget {
         .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .limit(10);
+
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: query.snapshots(),
       builder: (context, snap) {
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
+
         final docs = snap.data!.docs;
+        final categories = docs
+            .map((d) => (d.data()['primaryCategory'] as String?)?.trim())
+            .whereType<String>()
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+        final queryText = _searchController.text.trim().toLowerCase();
+        final filteredDocs = docs.where((d) {
+          final data = d.data();
+          final title = (data['title'] as String?)?.toLowerCase() ?? '';
+          final category =
+              (data['primaryCategory'] as String?)?.toLowerCase() ?? '';
+          final score = (data['clutterScore'] as num?)?.toString() ?? '';
+
+          final matchesSearch = queryText.isEmpty ||
+              title.contains(queryText) ||
+              category.contains(queryText) ||
+              score.contains(queryText);
+          final matchesCategory = _selectedCategory == null ||
+              (_selectedCategory != null &&
+                  (data['primaryCategory'] as String?) == _selectedCategory);
+
+          return matchesSearch && matchesCategory;
+        }).toList();
+
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final d in docs)
-              Card(
-                child: ListTile(
-                  leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child:
-                          (d.data()['imageUrl'] as String?)?.isNotEmpty == true
-                              ? Image.network(d.data()['imageUrl'] as String,
-                                  width: 56, height: 56, fit: BoxFit.cover)
-                              : Container(
-                                  width: 56,
-                                  height: 56,
-                                  color: Colors.grey[300])),
-                  title: Text((d.data()['title'] as String?) ?? 'Scan'),
-                  subtitle: Text(
-                      'Clutter Score: ${(d.data()['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-'}'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    final data = d.data();
-                    final url = (data['imageUrl'] as String?) ?? '';
-                    final organized = data['organizedImageUrl'] as String?;
-                    final labels = (data['labels'] as List?)?.cast<String>() ??
-                        const <String>[];
-                    final objectsRaw =
-                        (data['objects'] as List?) ?? const <dynamic>[];
-                    final objects = objectsRaw.map((o) {
-                      final box = o['box'] as Map<String, dynamic>? ?? const {};
-                      return DetectedObject(
-                        name: (o['name'] as String?) ?? 'object',
-                        confidence: ((o['confidence'] as num?) ?? 0).toDouble(),
-                        box: BoundingBoxNormalized(
-                          left: ((box['left'] as num?) ?? 0).toDouble(),
-                          top: ((box['top'] as num?) ?? 0).toDouble(),
-                          width: ((box['width'] as num?) ?? 0).toDouble(),
-                          height: ((box['height'] as num?) ?? 0).toDouble(),
-                        ),
-                      );
-                    }).toList();
-                    final analysis =
-                        VisionAnalysis(objects: objects, labels: labels);
-                    if (url.isNotEmpty) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ResultsScreen(
-                              image: NetworkImage(url),
-                              analysis: analysis,
-                              organizedUrl: organized),
-                        ),
-                      );
-                    }
-                  },
+            TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Search scans...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                      ),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
                 ),
               ),
-            const SizedBox(height: 8),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                ToggleButtons(
+                  isSelected: [
+                    _viewMode == _ScanViewMode.list,
+                    _viewMode == _ScanViewMode.grid2,
+                    _viewMode == _ScanViewMode.grid3,
+                  ],
+                  onPressed: (index) =>
+                      setState(() => _viewMode = _ScanViewMode.values[index]),
+                  borderRadius: BorderRadius.circular(12),
+                  constraints:
+                      const BoxConstraints(minHeight: 40, minWidth: 48),
+                  children: const [
+                    Icon(Icons.view_list),
+                    Icon(Icons.grid_view),
+                    Icon(Icons.grid_3x3_outlined),
+                  ],
+                ),
+                const Spacer(),
+                FilledButton.tonalIcon(
+                  onPressed: categories.isEmpty
+                      ? null
+                      : () => _showFilterSheet(categories),
+                  icon: const Icon(Icons.tune),
+                  label: Text(
+                    _selectedCategory == null
+                        ? 'Filter'
+                        : 'Filter (${_selectedCategory})',
+                  ),
+                ),
+              ],
+            ),
+            if (_selectedCategory != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: InputChip(
+                  label: Text(_selectedCategory!),
+                  onDeleted: () => setState(() => _selectedCategory = null),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            if (filteredDocs.isEmpty)
+              Center(
+                child: Text(
+                  'No scans found. Try a different search or filter.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              _buildScansView(context, filteredDocs),
+            const SizedBox(height: 12),
             _LoadMore(uid: uid, last: docs.isNotEmpty ? docs.last : null),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildScansView(
+    BuildContext context,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    switch (_viewMode) {
+      case _ScanViewMode.list:
+        return Column(
+          children: [
+            for (final doc in docs) ...[
+              _buildListCard(context, doc),
+              const SizedBox(height: 12),
+            ],
+          ],
+        );
+      case _ScanViewMode.grid2:
+      case _ScanViewMode.grid3:
+        final crossAxisCount = _viewMode == _ScanViewMode.grid2 ? 2 : 3;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: docs.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.72,
+          ),
+          itemBuilder: (context, index) => _buildGridCard(context, docs[index]),
+        );
+    }
+  }
+
+  Widget _buildListCard(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final imageUrl = (data['imageUrl'] as String?) ?? '';
+    final title = (data['title'] as String?) ?? 'Scan';
+    final score = (data['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-';
+
+    return Card(
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: imageUrl.isNotEmpty
+              ? Image.network(imageUrl,
+                  width: 56, height: 56, fit: BoxFit.cover)
+              : Container(
+                  width: 56,
+                  height: 56,
+                  color: Colors.grey[300],
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.image_not_supported_outlined),
+                ),
+        ),
+        title: Text(title),
+        subtitle: Text('Clutter Score: $score'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => _openScan(context, doc),
+      ),
+    );
+  }
+
+  Widget _buildGridCard(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final imageUrl = (data['imageUrl'] as String?) ?? '';
+    final title = (data['title'] as String?) ?? 'Scan';
+    final score = (data['clutterScore'] as num?)?.toStringAsFixed(1) ?? '-';
+    final category = (data['primaryCategory'] as String?) ?? 'General';
+
+    return GestureDetector(
+      onTap: () => _openScan(context, doc),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: imageUrl.isNotEmpty
+                  ? Image.network(imageUrl,
+                      width: double.infinity, fit: BoxFit.cover)
+                  : Container(
+                      width: double.infinity,
+                      color: Colors.grey[200],
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.image_not_supported_outlined),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(category,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey[600])),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, size: 16, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text('Score $score/10',
+                          style: Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openScan(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final url = (data['imageUrl'] as String?) ?? '';
+    final organized = data['organizedImageUrl'] as String?;
+    final labels =
+        (data['labels'] as List?)?.cast<String>() ?? const <String>[];
+    final objectsRaw = (data['objects'] as List?) ?? const <dynamic>[];
+    final objects = objectsRaw.map((o) {
+      final box =
+          o is Map<String, dynamic> ? o['box'] as Map<String, dynamic>? : null;
+      return DetectedObject(
+        name: (o is Map<String, dynamic> ? o['name'] as String? : null) ??
+            'object',
+        confidence:
+            (o is Map<String, dynamic> ? (o['confidence'] as num?) : null)
+                    ?.toDouble() ??
+                0,
+        box: BoundingBoxNormalized(
+          left: (box?['left'] as num?)?.toDouble() ?? 0,
+          top: (box?['top'] as num?)?.toDouble() ?? 0,
+          width: (box?['width'] as num?)?.toDouble() ?? 0,
+          height: (box?['height'] as num?)?.toDouble() ?? 0,
+        ),
+      );
+    }).toList();
+    final analysis = VisionAnalysis(objects: objects, labels: labels);
+    if (url.isEmpty) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ResultsScreen(
+            image: NetworkImage(url),
+            analysis: analysis,
+            organizedUrl: organized),
+      ),
+    );
+  }
+
+  void _showFilterSheet(List<String> categories) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              ListTile(
+                leading: const Icon(Icons.clear),
+                title: const Text('All categories'),
+                onTap: () {
+                  setState(() => _selectedCategory = null);
+                  Navigator.of(context).pop();
+                },
+              ),
+              const Divider(),
+              if (categories.isEmpty)
+                const ListTile(
+                  title: Text('No categories available'),
+                )
+              else
+                for (final category in categories)
+                  RadioListTile<String>(
+                    value: category,
+                    groupValue: _selectedCategory,
+                    title: Text(category),
+                    onChanged: (value) {
+                      setState(() => _selectedCategory = value);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+            ],
+          ),
         );
       },
     );
