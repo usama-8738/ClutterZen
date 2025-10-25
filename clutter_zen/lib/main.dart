@@ -36,7 +36,7 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key, bool? enableAuthGate, String? initialRoute})
       : _enableAuthGate = enableAuthGate ?? !Env.disableAuthGate,
-        _initialRoute = initialRoute ?? '/splash';
+        _initialRoute = initialRoute ?? '/onboarding';
 
   final bool _enableAuthGate;
   final String _initialRoute;
@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
             ? '/splash'
             : snapshot.hasData
                 ? '/home'
-                : '/sign-in';
+                : '/onboarding';
 
         return MaterialApp(
           key: ValueKey(route),
