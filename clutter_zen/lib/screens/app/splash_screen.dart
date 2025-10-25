@@ -37,38 +37,41 @@ class _SplashScreenState extends State<SplashScreen> {
             colors: [colors.primary, colors.secondary],
           ),
         ),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              'assets/clutterzen-logo-white.png',
-              height: 120,
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/clutterzen-logo-white.png',
+                    height: 120,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Universal Clutter',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'AI-Powered Decluttering',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 48),
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 3, color: Colors.white),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'Universal Clutter',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'AI-Powered Decluttering',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 48),
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                  strokeWidth: 3, color: Colors.white),
-            ),
-          ],
+          ),
         ),
       ),
     );
