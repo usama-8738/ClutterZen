@@ -127,17 +127,26 @@ class SettingsScreen extends StatelessWidget {
               leading: const Icon(Icons.star_border),
               title: const Text('Rate App')),
           const Divider(height: 32),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-            onTap: () async {
-              await AppFirebase.auth.signOut();
-              if (context.mounted) {
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/splash', (_) => false);
-              }
-            },
-          ),
+          if (user != null)
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title:
+                  const Text('Sign Out', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                await AppFirebase.auth.signOut();
+                if (context.mounted) {
+                  Navigator.of(context)
+                      .pushNamedAndRemoveUntil('/splash', (_) => false);
+                }
+              },
+            )
+          else
+            ListTile(
+              leading: const Icon(Icons.login),
+              title: const Text('Sign In'),
+              onTap: () => Navigator.of(context)
+                  .pushNamedAndRemoveUntil('/sign-in', (route) => false),
+            ),
         ],
       ),
     );
