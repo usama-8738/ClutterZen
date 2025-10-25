@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/app/splash_screen.dart';
+import 'screens/app/onboarding_screen.dart';
 import 'screens/app/root_nav.dart';
 import 'screens/app/categories_screen.dart';
 import 'screens/app/capture_screen.dart';
@@ -24,6 +25,7 @@ class AppRoutes {
   static Map<String, WidgetBuilder> routes = {
     '/splash': (_) => const SplashScreen(),
     '/home': (_) => const RootNav(),
+    '/onboarding': (_) => const OnboardingScreen(),
     '/categories': (_) => const CategoriesScreen(),
     '/photo-upload': (_) => const CaptureScreen(),
     '/processing': (_) => const ProcessingScreen(),
