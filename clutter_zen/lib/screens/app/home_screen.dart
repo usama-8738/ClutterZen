@@ -93,7 +93,7 @@ class _CreditsChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceVariant,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -379,11 +379,20 @@ class _RecentScansState extends State<_RecentScans> {
   final TextEditingController _searchController = TextEditingController();
   _ScanViewMode _viewMode = _ScanViewMode.list;
   String? _selectedCategory;
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> _extraDocs = [];
+  bool _loadingMore = false;
+  bool _allLoaded = false;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _resetPagination() {
+    _extraDocs.clear();
+    _allLoaded = false;
+    _loadingMore = false;
   }
 
   @override
@@ -404,7 +413,15 @@ class _RecentScansState extends State<_RecentScans> {
         }
 
         final docs = snap.data!.docs;
-        final categories = docs
+        final seenIds = docs.map((d) => d.id).toSet();
+        final combinedDocs =
+            <QueryDocumentSnapshot<Map<String, dynamic>>>[...docs];
+        for (final doc in _extraDocs) {
+          if (seenIds.add(doc.id)) {
+            combinedDocs.add(doc);
+          }
+        }
+        final categories = combinedDocs
             .map((d) => (d.data()['primaryCategory'] as String?)?.trim())
             .whereType<String>()
             .where((value) => value.isNotEmpty)
@@ -413,7 +430,7 @@ class _RecentScansState extends State<_RecentScans> {
           ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
         final queryText = _searchController.text.trim().toLowerCase();
-        final filteredDocs = docs.where((d) {
+        final filteredDocs = combinedDocs.where((d) {
           final data = d.data();
           final title = (data['title'] as String?)?.toLowerCase() ?? '';
           final category =
@@ -431,12 +448,17 @@ class _RecentScansState extends State<_RecentScans> {
           return matchesSearch && matchesCategory;
         }).toList();
 
+        final lastDoc =
+            combinedDocs.isNotEmpty ? combinedDocs.last : null;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _searchController,
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) => setState(() {
+                _resetPagination();
+              }),
               decoration: InputDecoration(
                 hintText: 'Search scans...',
                 prefixIcon: const Icon(Icons.search),
@@ -446,11 +468,14 @@ class _RecentScansState extends State<_RecentScans> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {});
+                          setState(() {
+                            _resetPagination();
+                          });
                         },
                       ),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                fillColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -486,7 +511,7 @@ class _RecentScansState extends State<_RecentScans> {
                   label: Text(
                     _selectedCategory == null
                         ? 'Filter'
-                        : 'Filter (${_selectedCategory})',
+                        : 'Filter ($_selectedCategory)',
                   ),
                 ),
               ],
@@ -497,7 +522,10 @@ class _RecentScansState extends State<_RecentScans> {
                 alignment: Alignment.centerLeft,
                 child: InputChip(
                   label: Text(_selectedCategory!),
-                  onDeleted: () => setState(() => _selectedCategory = null),
+                  onDeleted: () => setState(() {
+                    _selectedCategory = null;
+                    _resetPagination();
+                  }),
                 ),
               ),
             ],
@@ -516,7 +544,7 @@ class _RecentScansState extends State<_RecentScans> {
             else
               _buildScansView(context, filteredDocs),
             const SizedBox(height: 12),
-            _LoadMore(uid: uid, last: docs.isNotEmpty ? docs.last : null),
+            _buildLoadMoreButton(context, uid, lastDoc),
           ],
         );
       },
@@ -552,6 +580,73 @@ class _RecentScansState extends State<_RecentScans> {
           ),
           itemBuilder: (context, index) => _buildGridCard(context, docs[index]),
         );
+    }
+  }
+
+  Widget _buildLoadMoreButton(
+      BuildContext context,
+      String uid,
+      QueryDocumentSnapshot<Map<String, dynamic>>? anchor) {
+    if (anchor == null) {
+      return const SizedBox.shrink();
+    }
+    if (_allLoaded) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'All scans loaded',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: Colors.grey[600]),
+        ),
+      );
+    }
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        onPressed: _loadingMore ? null : () => _loadMore(uid, anchor),
+        child: _loadingMore
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text('Load more'),
+      ),
+    );
+  }
+
+  Future<void> _loadMore(
+    String uid,
+    QueryDocumentSnapshot<Map<String, dynamic>> anchor,
+  ) async {
+    if (_loadingMore || _allLoaded) return;
+    setState(() {
+      _loadingMore = true;
+    });
+    try {
+      final more = await AppFirebase.firestore
+          .collection('analyses')
+          .where('uid', isEqualTo: uid)
+          .orderBy('createdAt', descending: true)
+          .startAfterDocument(anchor)
+          .limit(10)
+          .get();
+      if (!mounted) return;
+      setState(() {
+        _extraDocs.addAll(more.docs);
+        _loadingMore = false;
+        if (more.docs.isEmpty) {
+          _allLoaded = true;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load more scans: $e')),
+      );
     }
   }
 
@@ -706,7 +801,10 @@ class _RecentScansState extends State<_RecentScans> {
                 leading: const Icon(Icons.clear),
                 title: const Text('All categories'),
                 onTap: () {
-                  setState(() => _selectedCategory = null);
+                  setState(() {
+                    _selectedCategory = null;
+                    _resetPagination();
+                  });
                   Navigator.of(context).pop();
                 },
               ),
@@ -717,12 +815,16 @@ class _RecentScansState extends State<_RecentScans> {
                 )
               else
                 for (final category in categories)
-                  RadioListTile<String>(
-                    value: category,
-                    groupValue: _selectedCategory,
+                  ListTile(
                     title: Text(category),
-                    onChanged: (value) {
-                      setState(() => _selectedCategory = value);
+                    trailing: _selectedCategory == category
+                        ? const Icon(Icons.check)
+                        : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = category;
+                        _resetPagination();
+                      });
                       Navigator.of(context).pop();
                     },
                   ),
@@ -731,54 +833,5 @@ class _RecentScansState extends State<_RecentScans> {
         );
       },
     );
-  }
-}
-
-class _LoadMore extends StatefulWidget {
-  const _LoadMore({required this.uid, required this.last});
-  final String uid;
-  final QueryDocumentSnapshot<Map<String, dynamic>>? last;
-  @override
-  State<_LoadMore> createState() => _LoadMoreState();
-}
-
-class _LoadMoreState extends State<_LoadMore> {
-  final List<QueryDocumentSnapshot<Map<String, dynamic>>> _extra = [];
-  bool _loading = false;
-  bool _done = false;
-  @override
-  Widget build(BuildContext context) {
-    if (_done) return const SizedBox.shrink();
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: TextButton(
-        onPressed: _loading ? null : _load,
-        child: _loading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2))
-            : const Text('Load more'),
-      ),
-    );
-  }
-
-  Future<void> _load() async {
-    if (widget.last == null) return;
-    setState(() => _loading = true);
-    final more = await AppFirebase.firestore
-        .collection('analyses')
-        .where('uid', isEqualTo: widget.uid)
-        .orderBy('createdAt', descending: true)
-        .startAfterDocument(widget.last!)
-        .limit(5)
-        .get();
-    if (mounted) {
-      setState(() {
-        _extra.addAll(more.docs);
-        _loading = false;
-        _done = more.docs.isEmpty;
-      });
-    }
   }
 }
