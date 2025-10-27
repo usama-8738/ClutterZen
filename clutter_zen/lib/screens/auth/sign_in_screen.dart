@@ -1,14 +1,10 @@
-import 'dart:convert';
-import 'dart:math';
-
-import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../app_firebase.dart';
 import '../../services/user_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../../services/auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -23,7 +19,6 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _loading = false;
   String? _error;
   bool _appleAvailable = false;
-  static Future<void>? _googleInit;
 
   @override
   void initState() {
@@ -196,13 +191,9 @@ class _SignInScreenState extends State<SignInScreen> {
     });
     String? errorMessage;
     try {
-      await AppFirebase.auth.signInWithEmailAndPassword(
+      final cred = await AppFirebase.auth.signInWithEmailAndPassword(
           email: _email.text.trim(), password: _password.text);
-      await UserService.ensureUserProfile(AppFirebase.auth.currentUser);
-      if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/home', (route) => false);
-      }
+      await _handleSignedIn(cred);
     } catch (e) {
       errorMessage = 'Failed: $e';
     } finally {
@@ -222,49 +213,10 @@ class _SignInScreenState extends State<SignInScreen> {
     });
     String? errorMessage;
     try {
-      if (kIsWeb) {
-        final provider = GoogleAuthProvider();
-        final cred = await AppFirebase.auth.signInWithPopup(provider);
-        await UserService.ensureUserProfile(cred.user);
-        if (mounted) {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/home', (route) => false);
-        }
-      } else {
-        final google = GoogleSignIn.instance;
-        final existingInit = _googleInit;
-        if (existingInit != null) {
-          await existingInit;
-        } else {
-          final initFuture = google.initialize();
-          _googleInit = initFuture.catchError((error, stack) {
-            _googleInit = null;
-            throw error;
-          });
-          await _googleInit!;
-        }
-        final account = await google.authenticate();
-        final tokens = account.authentication;
-        final idToken = tokens.idToken;
-        if (idToken == null) {
-          throw FirebaseAuthException(
-            code: 'missing-id-token',
-            message: 'Google sign-in did not return an ID token.',
-          );
-        }
-        final credential = GoogleAuthProvider.credential(idToken: idToken);
-        final cred = await AppFirebase.auth.signInWithCredential(credential);
-        await UserService.ensureUserProfile(cred.user);
-        if (mounted) {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/home', (route) => false);
-        }
-      }
-    } on GoogleSignInException catch (e) {
-      if (e.code != GoogleSignInExceptionCode.canceled) {
-        final details = e.description ?? e.code.name;
-        errorMessage = 'Failed: $details';
-      }
+      final cred = await AuthService(AppFirebase.auth).signInWithGoogle();
+      await _handleSignedIn(cred);
+    } on FirebaseAuthException catch (e) {
+      errorMessage = 'Failed: ${e.message ?? e.code}';
     } catch (e) {
       errorMessage = 'Failed: $e';
     } finally {
@@ -284,20 +236,16 @@ class _SignInScreenState extends State<SignInScreen> {
     });
     String? errorMessage;
     try {
-      final rawNonce = _generateNonce();
-      final nonce = _sha256ofString(rawNonce);
-      final credential = await SignInWithApple.getAppleIDCredential(scopes: [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName
-      ], nonce: nonce);
-      final oauth = OAuthProvider('apple.com')
-          .credential(idToken: credential.identityToken, rawNonce: rawNonce);
-      final cred = await AppFirebase.auth.signInWithCredential(oauth);
-      await UserService.ensureUserProfile(cred.user);
-      if (mounted) {
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/home', (route) => false);
+      if (!_appleAvailable) {
+        throw FirebaseAuthException(
+          code: 'apple-sign-in-unavailable',
+          message: 'Sign in with Apple is not supported on this device.',
+        );
       }
+      final cred = await AuthService(AppFirebase.auth).signInWithApple();
+      await _handleSignedIn(cred);
+    } on FirebaseAuthException catch (e) {
+      errorMessage = 'Failed: ${e.message ?? e.code}';
     } catch (e) {
       errorMessage = 'Failed: $e';
     } finally {
@@ -307,6 +255,14 @@ class _SignInScreenState extends State<SignInScreen> {
           _error = errorMessage;
         });
       }
+    }
+  }
+
+  Future<void> _handleSignedIn(UserCredential cred) async {
+    await UserService.ensureUserProfile(cred.user);
+    if (mounted) {
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/home', (route) => false);
     }
   }
 }
@@ -339,17 +295,6 @@ class _PasswordFieldState extends State<_PasswordField> {
     );
   }
 }
-
-String _generateNonce([int length = 32]) {
-  const charset =
-      '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-  final rand = Random.secure();
-  return List.generate(length, (_) => charset[rand.nextInt(charset.length)])
-      .join();
-}
-
-String _sha256ofString(String input) =>
-    sha256.convert(utf8.encode(input)).toString();
 
 Widget _shadow({required Widget child, bool dark = false}) => Container(
       decoration:
