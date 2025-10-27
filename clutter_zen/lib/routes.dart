@@ -11,6 +11,7 @@ import 'screens/app/notification_settings_screen.dart';
 import 'screens/app/contact_us_screen.dart';
 import 'screens/app/pricing_screen.dart';
 import 'screens/app/terms_services_screen.dart';
+import 'screens/app/privacy_policy_screen.dart';
 import 'screens/app/faqs_screen.dart';
 import 'screens/app/history_screen.dart';
 import 'screens/app/diagnostics_screen.dart';
@@ -34,6 +35,7 @@ class AppRoutes {
     '/contact-us': (_) => const ContactUsScreen(),
     '/pricing': (_) => const PricingScreen(),
     '/terms': (_) => const TermsServicesScreen(),
+    '/privacy-policy': (_) => const PrivacyPolicyScreen(),
     '/faqs': (_) => const FaqsScreen(),
     '/history': (_) => const HistoryScreen(),
     '/diagnostics': (_) => const DiagnosticsScreen(),
@@ -56,6 +58,7 @@ class AppRoutes {
     {'name': 'contact-us', 'route': '/contact-us'},
     {'name': 'pricing', 'route': '/pricing'},
     {'name': 'terms-services', 'route': '/terms'},
+    {'name': 'privacy-policy', 'route': '/privacy-policy'},
     {'name': 'faqs', 'route': '/faqs'},
     {'name': 'history', 'route': '/history'},
   ];
