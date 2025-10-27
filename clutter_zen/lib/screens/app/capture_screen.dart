@@ -131,41 +131,54 @@ class _CaptureScreenState extends State<CaptureScreen> {
     }
   }
 
-  Future<void> _analyze(String uid, int currentCredits) async {
+  Future<void> _analyze(String uid, int availableCredits) async {
     if (_image == null) return;
     setState(() => _loading = true);
     final scaffold = ScaffoldMessenger.of(context);
+    bool creditReserved = false;
     try {
+      if (availableCredits <= 0) {
+        scaffold.showSnackBar(
+            const SnackBar(content: Text('You have no scan credits left.')));
+        return;
+      }
+      final reserved = await UserService.consumeCredit(uid);
+      if (!reserved) {
+        scaffold.showSnackBar(
+            const SnackBar(content: Text('Unable to reserve a scan credit.')));
+        return;
+      }
+      creditReserved = true;
       final img = _image!;
       final bytes = await img.readAsBytes();
-
-      // Decrement credits before starting the analysis
-      await UserService.updateCredits(uid, currentCredits - 1);
-
-      // Navigate to processing screen, which will run the analysis and navigate to results.
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => ProcessingScreen(
-              background: MemoryImage(bytes),
-              onReady: (context) async {
-                // Upload to storage
+      if (!mounted) {
+        await UserService.refundCredit(uid);
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ProcessingScreen(
+            background: MemoryImage(bytes),
+            onReady: (context) async {
+              try {
                 final now = DateTime.now();
                 final path =
                     'uploads/$uid/${now.toIso8601String()}-${img.name}';
                 final imageUrl = await Registry.storage.uploadBytes(
                     path: path, data: bytes, contentType: img.mimeType);
-
-                // Analyze in parallel
-                final visionFuture = Registry.vision.analyzeImageUrl(imageUrl);
-                final replicateFuture = Registry.replicate
-                    .generateOrganizedImage(imageUrl: imageUrl);
-                final results =
-                    await Future.wait([visionFuture, replicateFuture]);
-                final analysis = results[0] as VisionAnalysis;
-                final organizedUrl = results[1] as String;
-
-                // Create doc
+                final VisionAnalysis analysis =
+                    await Registry.vision.analyzeImageUrl(imageUrl);
+                String organizedUrl = imageUrl;
+                try {
+                  organizedUrl = await Registry.replicate
+                      .generateOrganizedImage(imageUrl: imageUrl);
+                } catch (replicateError) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(
+                            'Analysis ready, but organized preview failed: $replicateError')));
+                  }
+                }
                 await Registry.analysis.create(
                   uid: uid,
                   title: 'Scan from ${now.toLocal()}',
@@ -173,25 +186,34 @@ class _CaptureScreenState extends State<CaptureScreen> {
                   organizedImageUrl: organizedUrl,
                   analysis: analysis,
                 );
-
-                // Navigate to results
                 if (context.mounted) {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
                       builder: (_) => ResultsScreen(
-                        image: MemoryImage(bytes),
+                        image: NetworkImage(imageUrl),
                         analysis: analysis,
                         organizedUrl: organizedUrl,
                       ),
                     ),
                   );
                 }
-              },
-            ),
+              } catch (error) {
+                await UserService.refundCredit(uid);
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $error')),
+                );
+              }
+            },
           ),
-        );
-      }
+        ),
+      );
+      creditReserved = false;
     } catch (e) {
+      if (creditReserved) {
+        await UserService.refundCredit(uid);
+      }
       scaffold.showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) {
