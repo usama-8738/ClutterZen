@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../app_firebase.dart';
+import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -18,6 +20,15 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final TextEditingController _password = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _appleAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SignInWithApple.isAvailable().then((value) {
+      if (mounted) setState(() => _appleAvailable = value);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +108,13 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               icon: const Icon(Icons.g_mobiledata),
               label: const Text('Sign up with Google')),
           const SizedBox(height: 8),
-          OutlinedButton.icon(
-              onPressed: _loading ? null : _apple,
-              icon: const Icon(Icons.apple),
-              label: const Text('Sign up with Apple')),
+          if (_appleAvailable) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+                onPressed: _loading ? null : _apple,
+                icon: const Icon(Icons.apple),
+                label: const Text('Sign up with Apple')),
+          ],
         ],
       ),
     );
@@ -141,13 +155,25 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       _loading = true;
       _error = null;
     });
+    String? error;
     try {
-      final cred = await AppFirebase.auth.signInWithPopup(GoogleAuthProvider());
+      final cred = await AuthService(AppFirebase.auth).signInWithGoogle();
       await UserService.ensureUserProfile(cred.user);
+      if (mounted) {
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/home', (route) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      error = 'Failed: ${e.message ?? e.code}';
     } catch (e) {
-      setState(() => _error = 'Failed: $e');
+      error = 'Failed: $e';
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error;
+        });
+      }
     }
   }
 
@@ -156,17 +182,34 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       _loading = true;
       _error = null;
     });
+    String? error;
     try {
       // Apple sign-up is the same as sign-in flow; Apple returns identity token with email/fullName on first consent
       // In a production app, handle scopes and missing data appropriately.
       // Here we reuse the popup flow via OAuth provider on supported platforms.
-      final oauth = OAuthProvider('apple.com');
-      final cred = await AppFirebase.auth.signInWithPopup(oauth);
+      if (!_appleAvailable) {
+        throw FirebaseAuthException(
+          code: 'apple-sign-in-unavailable',
+          message: 'Sign in with Apple is not supported on this device.',
+        );
+      }
+      final cred = await AuthService(AppFirebase.auth).signInWithApple();
       await UserService.ensureUserProfile(cred.user);
+      if (mounted) {
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/home', (route) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      error = 'Failed: ${e.message ?? e.code}';
     } catch (e) {
-      setState(() => _error = 'Failed: $e');
+      error = 'Failed: $e';
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error;
+        });
+      }
     }
   }
 }
