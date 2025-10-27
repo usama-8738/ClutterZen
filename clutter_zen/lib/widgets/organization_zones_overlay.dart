@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/vision_models.dart';
+import '../models/vision_models.dart';
 
 class OrganizationZonesOverlay extends StatelessWidget {
   const OrganizationZonesOverlay({
