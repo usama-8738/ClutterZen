@@ -40,7 +40,10 @@ class _ResultsScreenState extends State<ResultsScreen>
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this);
-    _replicateAfterUrl = widget.organizedUrl;
+    _replicateAfterUrl =
+        (widget.organizedUrl != null && widget.organizedUrl!.isNotEmpty)
+            ? widget.organizedUrl
+            : null;
   }
 
   @override
@@ -59,8 +62,7 @@ class _ResultsScreenState extends State<ResultsScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined),
-            onPressed: () => SharePlus.instance
-                .share(ShareParams(text: 'Check out my decluttering results!')),
+            onPressed: _shareResults,
           ),
           IconButton(
               icon: const Icon(Icons.save_outlined),
@@ -299,6 +301,19 @@ class _ResultsScreenState extends State<ResultsScreen>
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Saved analysis')));
   }
+
+  Future<void> _shareResults() async {
+    final buffer = StringBuffer('Check out my decluttering results!');
+    if (widget.analysis.labels.isNotEmpty) {
+      buffer.write(' Top label: ${widget.analysis.labels.first}.');
+    }
+    if (_replicateAfterUrl != null && _replicateAfterUrl!.isNotEmpty) {
+      buffer.write(' Organized preview: $_replicateAfterUrl');
+    }
+    await SharePlus.instance.share(
+      ShareParams(text: buffer.toString().trim()),
+    );
+  }
 }
 
 class _StatTile extends StatelessWidget {
@@ -475,8 +490,7 @@ class _ReplicateActionState extends State<_ReplicateAction> {
         return;
       }
       final url = (widget.image as NetworkImage).url;
-      const token =
-          String.fromEnvironment('REPLICATE_API_TOKEN', defaultValue: '');
+      final token = Env.replicateToken;
       if (token.isEmpty) {
         setState(() => _error = 'Missing REPLICATE_API_TOKEN.');
         return;
