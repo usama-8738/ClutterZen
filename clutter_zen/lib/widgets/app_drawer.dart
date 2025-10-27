@@ -32,8 +32,14 @@ class AppDrawer extends StatelessWidget {
                   final email = user.email ??
                       (data['email'] as String?) ??
                       'Add your email';
-                  final photoUrl = user.photoURL as String?;
-                  final plan = (data['plan'] as String?) ?? 'Free Plan';
+                  final photoUrl = user.photoURL;
+                  final planRaw = (data['plan'] as String?) ?? 'Free';
+                  final planLower = planRaw.toLowerCase();
+                  final planLabel = planLower == 'pro'
+                      ? 'Pro Plan'
+                      : planLower == 'free'
+                          ? 'Free Plan'
+                          : planRaw;
                   final creditsLeft = (data['scanCredits'] as num?)?.toInt();
                   final creditsTotal = (data['creditsTotal'] as num?)?.toInt();
                   final creditsUsedStored =
@@ -45,7 +51,12 @@ class AppDrawer extends StatelessWidget {
 
                   double? progress;
                   String creditsSummary;
-                  if (creditsTotal != null &&
+                  final hasUnlimitedCredits =
+                      planLower == 'pro' &&
+                          (creditsTotal == null || creditsTotal <= 0);
+                  if (hasUnlimitedCredits) {
+                    creditsSummary = 'Unlimited credits included';
+                  } else if (creditsTotal != null &&
                       creditsTotal > 0 &&
                       creditsUsedCalculated != null) {
                     progress =
@@ -69,7 +80,7 @@ class AppDrawer extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       _PlanCard(
-                        plan: plan,
+                        plan: planLabel,
                         creditsSummary: creditsSummary,
                         progress: progress,
                         onUpgrade: () {
@@ -329,7 +340,7 @@ class _PlanCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: progress!.clamp(0.0, 1.0),
                 minHeight: 8,
-                backgroundColor: theme.colorScheme.surfaceVariant,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
               ),
             ),
           ],
