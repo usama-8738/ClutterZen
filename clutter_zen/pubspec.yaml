@@ -79,8 +79,9 @@ flutter:
   assets:
     - assets/clutterzen-logo-color.png
     - assets/clutterzen-logo-white.png
+    - assets/onboarding/
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: assets/clutterzen-logo-color.png
