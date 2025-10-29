@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../env.dart';
+
 class AuthService {
   const AuthService(this._auth);
 
@@ -126,6 +128,9 @@ class AuthService {
       sha256.convert(utf8.encode(input)).toString();
 
   static Future<void> _ensureGoogleInitialized() {
-    return _googleInitFuture ??= GoogleSignIn.instance.initialize();
+    final serverClientId = Env.googleServerClientId;
+    return _googleInitFuture ??= GoogleSignIn.instance.initialize(
+      serverClientId: serverClientId.isEmpty ? null : serverClientId,
+    );
   }
 }
