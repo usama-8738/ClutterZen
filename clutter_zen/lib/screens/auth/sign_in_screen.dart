@@ -31,13 +31,19 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context)
                 .pushNamedAndRemoveUntil('/home', (route) => false),
-            child: const Text('Skip'),
+            child: const Text(
+              'Skip',
+              style: TextStyle(color: Colors.black),
+            ),
           ),
         ],
       ),
@@ -48,22 +54,41 @@ class _SignInScreenState extends State<SignInScreen> {
             const SizedBox(height: 16),
             Image.asset('assets/clutterzen-logo-color.png', height: 72),
             const SizedBox(height: 16),
-            Text('Welcome Back',
+            Text('Welcome back',
                 textAlign: TextAlign.center,
                 style: Theme.of(context)
                     .textTheme
                     .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w800)),
+                    ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text("Let's get started by filling out the form below.",
-                textAlign: TextAlign.center),
+            const Text(
+              'Access your orders, wishlist, and exclusive offers by logging in.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
             const SizedBox(height: 16),
             if (_error != null)
-              Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(_error!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center)),
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _error!,
+                        style: TextStyle(color: Colors.red.shade700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             TextField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
@@ -79,44 +104,73 @@ class _SignInScreenState extends State<SignInScreen> {
             const SizedBox(height: 12),
             _PasswordField(controller: _password),
             const SizedBox(height: 16),
-            _shadow(
-              dark: true,
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(77),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: ElevatedButton(
                 onPressed: _loading ? null : _signInEmail,
                 style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 0),
+                  minimumSize: const Size(double.infinity, 48),
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
                 child: _loading
                     ? const SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Text('Sign In'),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Sign in'),
               ),
             ),
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                  onPressed: () =>
-                      Navigator.of(context).pushNamed('/forgot-password'),
-                  child: const Text('Forgot Password?')),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/forgot-password'),
+                child: const Text(
+                  'Forgot password?',
+                  style: TextStyle(color: Colors.black),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Row(children: const [
               Expanded(child: Divider()),
               Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('OR')),
-              Expanded(child: Divider())
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('OR'),
+              ),
+              Expanded(child: Divider()),
             ]),
             const SizedBox(height: 16),
-            _shadow(
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withAlpha(77),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: OutlinedButton.icon(
                 onPressed: _loading ? null : _signInGoogle,
                 icon: const Icon(Icons.g_mobiledata),
@@ -125,7 +179,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   minimumSize: const Size(double.infinity, 48),
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black87,
-                  side: const BorderSide(color: Colors.black),
+                  side: const BorderSide(color: Colors.grey),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -134,7 +188,17 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             const SizedBox(height: 12),
             if (_appleAvailable)
-              _shadow(
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withAlpha(77),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: OutlinedButton.icon(
                   onPressed: _loading ? null : _signInApple,
                   icon: const Icon(Icons.apple),
@@ -142,16 +206,26 @@ class _SignInScreenState extends State<SignInScreen> {
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 48),
                     backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Colors.black),
+                    foregroundColor: Colors.black87,
+                    side: const BorderSide(color: Colors.grey),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
               ),
-            const SizedBox(height: 12),
-            _shadow(
+            if (_appleAvailable) const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withAlpha(77),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: OutlinedButton.icon(
                 onPressed: _loading
                     ? null
@@ -161,8 +235,8 @@ class _SignInScreenState extends State<SignInScreen> {
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                   backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.black),
+                  foregroundColor: Colors.black87,
+                  side: const BorderSide(color: Colors.grey),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -192,10 +266,24 @@ class _SignInScreenState extends State<SignInScreen> {
     String? errorMessage;
     try {
       final cred = await AppFirebase.auth.signInWithEmailAndPassword(
-          email: _email.text.trim(), password: _password.text);
+        email: _email.text.trim(),
+        password: _password.text,
+      );
       await _handleSignedIn(cred);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up first.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email address. Please check and try again.';
+      } else if (e.code == 'user-disabled') {
+        errorMessage = 'This account has been disabled. Please contact support.';
+      } else {
+        errorMessage = 'Failed to sign in: ${e.message ?? e.code}';
+      }
     } catch (e) {
-      errorMessage = 'Failed: $e';
+      errorMessage = 'Failed to sign in: $e';
     } finally {
       if (mounted) {
         setState(() {
@@ -295,14 +383,3 @@ class _PasswordFieldState extends State<_PasswordField> {
     );
   }
 }
-
-Widget _shadow({required Widget child, bool dark = false}) => Container(
-      decoration:
-          BoxDecoration(borderRadius: BorderRadius.circular(14), boxShadow: [
-        BoxShadow(
-            color: (dark ? Colors.black : Colors.grey).withAlpha(77),
-            blurRadius: 10,
-            offset: const Offset(0, 4))
-      ]),
-      child: child,
-    );
