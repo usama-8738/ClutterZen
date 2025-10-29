@@ -190,7 +190,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             _PrivacySection(
               title: 'Data Sharing & Third Parties',
               icon: Icons.share_outlined,
-              iconColor: Colors.purple,
+              iconColor: Colors.grey.shade700,
               content: [
                 _PrivacyItem(
                   title: 'No Sale of Data',
@@ -310,7 +310,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             _PrivacySection(
               title: 'International Users',
               icon: Icons.public_outlined,
-              iconColor: Colors.indigo,
+              iconColor: Colors.grey.shade700,
               content: [
                 _PrivacyItem(
                   title: 'Data Transfers',
