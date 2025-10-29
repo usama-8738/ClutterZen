@@ -18,6 +18,11 @@ class Env {
   static const firebaseAppId =
       String.fromEnvironment('FIREBASE_APP_ID', defaultValue: '');
 
+  // OAuth client ID used for Google sign-in on Android/iOS
+  static const googleServerClientId = String.fromEnvironment(
+      'GOOGLE_SERVER_CLIENT_ID',
+      defaultValue: '');
+
   // Dev toggle: disable authentication gate for UI testing
   static const disableAuthGate =
       bool.fromEnvironment('DISABLE_AUTH_GATE', defaultValue: false);
