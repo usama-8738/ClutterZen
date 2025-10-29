@@ -20,7 +20,6 @@ class HomeScreen extends StatelessWidget {
         children: const [
           SizedBox(height: 8),
           _TopBar(),
-          _TopGradientBar(),
           SizedBox(height: 12),
           _GreetingRow(),
           SizedBox(height: 12),
@@ -115,22 +114,6 @@ class _CreditsChip extends StatelessWidget {
   }
 }
 
-class _TopGradientBar extends StatelessWidget {
-  const _TopGradientBar();
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 12,
-      margin: const EdgeInsets.only(top: 4),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            colors: [Color(0xFF28A9FF), Color(0xFF48E58B)]),
-        borderRadius: BorderRadius.circular(24),
-      ),
-    );
-  }
-}
-
 class _GreetingRow extends StatelessWidget {
   const _GreetingRow();
   @override
@@ -170,7 +153,11 @@ class _CenterLogo extends StatelessWidget {
         width: 64,
         height: 64,
         decoration: BoxDecoration(
-          color: Colors.black,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF28A9FF), Color(0xFF48E58B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
