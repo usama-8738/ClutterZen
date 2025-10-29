@@ -84,6 +84,8 @@ flutter_icons:
   android: true
   ios: true
   image_path: assets/clutterzen-logo-color.png
+  android_adaptive_icon_foreground: assets/clutterzen-logo-color.png
+  android_adaptive_icon_background: "#FFFFFF"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
