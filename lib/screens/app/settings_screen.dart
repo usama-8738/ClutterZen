@@ -325,7 +325,7 @@ class SettingsScreen extends StatelessWidget {
                 
                 _SettingsCard(
                   icon: Icons.security,
-                  iconColor: Colors.purple,
+                  iconColor: Colors.black,
                   title: 'Terms of Service',
                   trailing: const Icon(Icons.keyboard_arrow_right, color: Colors.grey),
                   onTap: () => Navigator.of(context).pushNamed('/terms'),

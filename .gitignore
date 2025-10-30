@@ -1,31 +1,65 @@
-# Ignore local environment files anywhere
+# Environment files
 **/.env
 **/.env.*
+*.env
 !**/.env.example
+ENV.local
+ENV.*.local
 
-# Ignore requirements directory with mockups/docs
+# Secrets
+**/secrets/**
+
+# Requirements and local docs
 requirements/
 
 # Assistant / IDE artifacts
 **/.continue/
-clutter_zen/devtools_options.yaml
+.idea/
+*.iml
+*.ipr
+*.iws
+clutter_zen.iml
+devtools_options.yaml
 
-# Firebase config that should stay local
-clutter_zen/android/app/google-services.json
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
 
-# Flutter/Dart typical ignores (safe defaults)
+# Flutter / Dart tooling
+**/doc/api/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.pub-cache/
+.pub/
 .packages
-build/
+/build/
+/coverage/
+
+# Platform-specific ephemeral directories
 ios/Flutter/.last_build_id
-windows/flutter/ephemeral/
-macos/Flutter/ephemeral/
 linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
 web/.dart_tool/
 android/.gradle/
 android/app/debug/
 android/app/profile/
 android/app/release/
 
+# Firebase config kept local
+android/app/google-services.json
+
+# Local IDE/Flutter metadata
+.metadata
+android/local.properties

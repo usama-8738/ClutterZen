@@ -1,0 +1,25 @@
+{
+  "name": "clutter-zen-backend",
+  "description": "Firebase Cloud Functions for Clutter Zen backend proxy services.",
+  "version": "0.1.0",
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "build": "echo \"TypeScript build not configured\"",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "start": "npm run serve"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "firebase-admin": "^13.0.1",
+    "firebase-functions": "^5.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0",
+    "eslint-config-google": "^0.14.0"
+  }
+}
