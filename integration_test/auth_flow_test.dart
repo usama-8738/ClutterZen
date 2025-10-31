@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-import 'package:clutter_zen/screens/auth/sign_in_screen.dart';
-import 'package:clutter_zen/screens/auth/phone_otp_screen.dart';
+import 'package:clutterzen/screens/auth/sign_in_screen.dart';
+import 'package:clutterzen/screens/auth/phone_otp_screen.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
