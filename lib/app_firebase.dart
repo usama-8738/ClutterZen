@@ -4,23 +4,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// Central place to access Firebase instances so we can override them in demo
 /// or test builds without touching UI code.
 class AppFirebase {
-  static FirebaseAuth auth = FirebaseAuth.instance;
-  static FirebaseFirestore firestore = FirebaseFirestore.instance;
+  AppFirebase._();
+
+  static FirebaseAuth? _authOverride;
+  static FirebaseFirestore? _firestoreOverride;
+
+  static FirebaseAuth get auth => _authOverride ?? FirebaseAuth.instance;
+  static FirebaseFirestore get firestore =>
+      _firestoreOverride ?? FirebaseFirestore.instance;
 
   static void configure({
     FirebaseAuth? authOverride,
     FirebaseFirestore? firestoreOverride,
   }) {
-    if (authOverride != null) {
-      auth = authOverride;
-    }
-    if (firestoreOverride != null) {
-      firestore = firestoreOverride;
-    }
+    _authOverride = authOverride ?? _authOverride;
+    _firestoreOverride = firestoreOverride ?? _firestoreOverride;
   }
 
   static void reset() {
-    auth = FirebaseAuth.instance;
-    firestore = FirebaseFirestore.instance;
+    _authOverride = null;
+    _firestoreOverride = null;
   }
 }
