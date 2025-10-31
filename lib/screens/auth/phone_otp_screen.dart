@@ -1,6 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart' show PhoneAuthProvider;
+import 'package:firebase_auth/firebase_auth.dart'
+    show FirebaseAuthException, PhoneAuthCredential, PhoneAuthProvider, UserCredential;
 import 'package:flutter/material.dart';
 import '../../app_firebase.dart';
+import '../../services/user_service.dart';
 
 class PhoneOtpScreen extends StatefulWidget {
   const PhoneOtpScreen({super.key});
@@ -92,8 +94,13 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
         phoneNumber: _phone.text.trim(),
         verificationCompleted: (cred) async {
           try {
-            await AppFirebase.auth.signInWithCredential(cred);
-          } catch (_) {}
+            await _signInWithCredential(cred);
+            if (mounted) {
+              setState(() => _msg = 'Signed in automatically.');
+            }
+          } catch (e) {
+            if (mounted) setState(() => _msg = 'Failed: $e');
+          }
         },
         verificationFailed: (e) => setState(() => _msg = e.message),
         codeSent: (verificationId, resendToken) => setState(() {
@@ -123,7 +130,12 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
     try {
       final cred = PhoneAuthProvider.credential(
           verificationId: _verificationId!, smsCode: _code.text.trim());
-      await AppFirebase.auth.signInWithCredential(cred);
+      await _signInWithCredential(cred);
+      if (mounted) {
+        setState(() => _msg = 'Signed in successfully.');
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _msg = e.message ?? 'Failed: ${e.code}');
     } catch (e) {
       setState(() => _msg = 'Failed: $e');
     } finally {
@@ -143,8 +155,13 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
         forceResendingToken: _resendToken,
         verificationCompleted: (cred) async {
           try {
-            await AppFirebase.auth.signInWithCredential(cred);
-          } catch (_) {}
+            await _signInWithCredential(cred);
+            if (mounted) {
+              setState(() => _msg = 'Signed in automatically.');
+            }
+          } catch (e) {
+            if (mounted) setState(() => _msg = 'Failed: $e');
+          }
         },
         verificationFailed: (e) => setState(() => _msg = e.message),
         codeSent: (verificationId, resendToken) => setState(() {
@@ -159,6 +176,16 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
       setState(() => _msg = 'Failed: $e');
     } finally {
       if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _signInWithCredential(PhoneAuthCredential credential) async {
+    try {
+      final UserCredential userCredential =
+          await AppFirebase.auth.signInWithCredential(credential);
+      await UserService.ensureUserProfile(userCredential.user);
+    } on FirebaseAuthException {
+      rethrow;
     }
   }
 }
