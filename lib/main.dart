@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app_firebase.dart';
@@ -22,8 +23,11 @@ Future<void> main() async {
       } else {
         await Firebase.initializeApp();
       }
-    } catch (_) {
-      // Firebase not configured yet; continue without blocking dev flow.
+    } catch (e, stackTrace) {
+      debugPrint('Firebase initialization failed: $e');
+      if (kDebugMode) {
+        debugPrintStack(stackTrace: stackTrace);
+      }
     }
   }
 
