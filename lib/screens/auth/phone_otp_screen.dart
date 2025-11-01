@@ -184,8 +184,17 @@ class _PhoneOtpScreenState extends State<PhoneOtpScreen> {
       final UserCredential userCredential =
           await AppFirebase.auth.signInWithCredential(credential);
       await UserService.ensureUserProfile(userCredential.user);
-    } on FirebaseAuthException {
-      rethrow;
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() => _msg = e.message ?? 'Authentication failed: ${e.code}');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _msg = 'Failed to sign in: $e');
+      }
     }
   }
 }
