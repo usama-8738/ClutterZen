@@ -15,7 +15,9 @@ import 'screens/app/privacy_policy_screen.dart';
 import 'screens/app/faqs_screen.dart';
 import 'screens/app/history_screen.dart';
 import 'screens/app/diagnostics_screen.dart';
+import 'screens/results/results_screen.dart';
 import 'screens/auth/sign_in_screen.dart';
+import 'models/vision_models.dart';
 import 'screens/auth/create_account_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/update_profile_screen.dart';
@@ -39,6 +41,23 @@ class AppRoutes {
     '/faqs': (_) => const FaqsScreen(),
     '/history': (_) => const HistoryScreen(),
     '/diagnostics': (_) => const DiagnosticsScreen(),
+    // Results screen requires arguments and is typically navigated via MaterialPageRoute
+    // Keeping here for potential deep linking support
+    '/results': (context) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map && args['image'] != null && args['analysis'] != null) {
+        return ResultsScreen(
+          image: args['image'] as ImageProvider,
+          analysis: args['analysis'] as VisionAnalysis,
+          organizedUrl: args['organizedUrl'] as String?,
+        );
+      }
+      // Fallback - navigate back if no args
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).maybePop();
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    },
     '/sign-in': (_) => const SignInScreen(),
     '/create-account': (_) => const CreateAccountScreen(),
     '/forgot-password': (_) => const ForgotPasswordScreen(),
