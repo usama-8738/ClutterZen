@@ -16,7 +16,10 @@ app.use(cors({origin: true}));
  */
 app.post("/vision/analyze", async (req, res) => {
   try {
-    const visionKey = functions.config().vision?.key;
+    // Try new environment variables first (Firebase Functions v2+)
+    // Fall back to functions.config() for v1 compatibility
+    const visionKey = process.env.VISION_API_KEY || 
+                      functions.config().vision?.key;
     if (!visionKey) {
       return res.status(500).json({error: "VISION_API_KEY not configured"});
     }
@@ -66,7 +69,10 @@ app.post("/vision/analyze", async (req, res) => {
  */
 app.post("/replicate/generate", async (req, res) => {
   try {
-    const replicateToken = functions.config().replicate?.token;
+    // Try new environment variables first (Firebase Functions v2+)
+    // Fall back to functions.config() for v1 compatibility
+    const replicateToken = process.env.REPLICATE_API_TOKEN || 
+                            functions.config().replicate?.token;
     if (!replicateToken) {
       return res.status(500).json({error: "REPLICATE_API_TOKEN not configured"});
     }
