@@ -15,6 +15,7 @@ import 'fakes/fake_analysis_repository.dart';
 import 'fakes/fake_storage_repository.dart';
 import 'fakes/fake_vision_provider.dart';
 import 'fakes/fake_generate_provider.dart';
+// import 'firebase/firebase_functions_provider.dart'; // Uncomment when Functions are deployed
 import 'interfaces/local_store.dart';
 import 'local/shared_prefs_store.dart';
 import 'fakes/fake_local_store.dart';
@@ -41,18 +42,40 @@ class BackendRegistry {
   }
 
   static IVisionProvider visionProvider() {
+    // Priority 1: Use Firebase Functions (most secure, recommended for production)
+    // Uncomment when Functions are deployed with API keys configured
+    // try {
+    //   return FirebaseFunctionsVisionProvider();
+    // } catch (e) {
+    //   // Fall through to direct API if Functions fail
+    // }
+    
+    // Priority 2: Use direct API if keys provided (development/testing)
     if (Env.visionApiKey.isNotEmpty) {
       final svc = VisionService(apiKey: Env.visionApiKey);
       return _VisionAdapter(svc);
     }
+    
+    // Priority 3: Fallback to fake provider (for UI testing)
     return FakeVisionProvider();
   }
 
   static IGenerateProvider generateProvider() {
+    // Priority 1: Use Firebase Functions (most secure, recommended for production)
+    // Uncomment when Functions are deployed with API keys configured
+    // try {
+    //   return FirebaseFunctionsGenerateProvider();
+    // } catch (e) {
+    //   // Fall through to direct API if Functions fail
+    // }
+    
+    // Priority 2: Use direct API if keys provided (development/testing)
     if (Env.replicateToken.isNotEmpty) {
       final svc = ReplicateService(apiToken: Env.replicateToken);
       return _GenerateAdapter(svc);
     }
+    
+    // Priority 3: Fallback to fake provider (for UI testing)
     return FakeGenerateProvider();
   }
 
