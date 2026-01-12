@@ -1,10 +1,9 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../models/product_recommendation.dart';
 import '../../../models/vision_models.dart';
+import '../../../services/product_recommendation_service.dart';
 
 class ShopTab extends StatefulWidget {
   const ShopTab({super.key, required this.analysis});
@@ -16,11 +15,15 @@ class ShopTab extends StatefulWidget {
 
 class _ShopTabState extends State<ShopTab> {
   late Future<List<ProductRecommendation>> _recommendationsFuture;
+  String _searchQuery = '';
+  String? _selectedCategory;
 
   @override
   void initState() {
     super.initState();
-    _recommendationsFuture = _matchOrganizingProducts(widget.analysis.objects);
+    _recommendationsFuture = ProductRecommendationService.generateRecommendations(
+      widget.analysis,
+    );
   }
 
   @override
@@ -32,268 +35,311 @@ class _ShopTabState extends State<ShopTab> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text('Error loading products: ${snapshot.error}'),
+              ],
+            ),
+          );
         }
-        final recommendations = snapshot.data ?? [];
-        if (recommendations.isEmpty) {
-          return const Center(
-              child: Text('No product recommendations available.'));
+        
+        final allRecommendations = snapshot.data ?? [];
+        final filtered = _filterProducts(allRecommendations);
+        
+        if (filtered.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  _searchQuery.isNotEmpty || _selectedCategory != null
+                      ? 'No products match your search'
+                      : 'No product recommendations available',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                if (_searchQuery.isNotEmpty || _selectedCategory != null)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _searchQuery = '';
+                        _selectedCategory = null;
+                      });
+                    },
+                    child: const Text('Clear filters'),
+                  ),
+              ],
+            ),
+          );
         }
-        return GridView.builder(
-          padding: const EdgeInsets.all(8),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 0.65,
-          ),
-          itemCount: recommendations.length,
-          itemBuilder: (context, i) {
-            final product = recommendations[i];
-            return Card(
-              clipBehavior: Clip.antiAlias,
+        
+        return Column(
+          children: [
+            // Search and filter bar
+            Padding(
+              padding: const EdgeInsets.all(8.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 120,
-                    color: Colors.grey[200],
-                    child: Center(
-                      child: product.imageUrl.isNotEmpty
-                          ? Image.network(product.imageUrl,
-                              fit: BoxFit.cover, width: double.infinity)
-                          : const Icon(Icons.shopping_bag, size: 48),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search products...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    onChanged: (value) {
+                      setState(() => _searchQuery = value);
+                    },
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Text(product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('\$${product.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.green)),
-                  ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: ElevatedButton(
-                      onPressed: () => _launchUrl(product.affiliateLink),
-                      child: const Text('Shop Now'),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _CategoryChip(
+                          label: 'All',
+                          selected: _selectedCategory == null,
+                          onTap: () => setState(() => _selectedCategory = null),
+                        ),
+                        const SizedBox(width: 8),
+                        _CategoryChip(
+                          label: 'Storage',
+                          selected: _selectedCategory == 'Storage',
+                          onTap: () => setState(() => _selectedCategory = 'Storage'),
+                        ),
+                        const SizedBox(width: 8),
+                        _CategoryChip(
+                          label: 'Organizers',
+                          selected: _selectedCategory == 'Organizers',
+                          onTap: () => setState(() => _selectedCategory = 'Organizers'),
+                        ),
+                        const SizedBox(width: 8),
+                        _CategoryChip(
+                          label: 'Furniture',
+                          selected: _selectedCategory == 'Furniture',
+                          onTap: () => setState(() => _selectedCategory = 'Furniture'),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            );
-          },
+            ),
+            // Products grid
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.all(8),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.7,
+                ),
+                itemCount: filtered.length,
+                itemBuilder: (context, i) {
+                  final product = filtered[i];
+                  return _ProductCard(product: product);
+                },
+              ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  List<ProductRecommendation> _filterProducts(List<ProductRecommendation> products) {
+    var filtered = products;
+    
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered.where((p) {
+        return p.name.toLowerCase().contains(query) ||
+               p.description.toLowerCase().contains(query) ||
+               p.category.toLowerCase().contains(query);
+      }).toList();
+    }
+    
+    if (_selectedCategory != null) {
+      filtered = filtered.where((p) => p.category == _selectedCategory).toList();
+    }
+    
+    return filtered;
+  }
+}
+
+class _ProductCard extends StatelessWidget {
+  const _ProductCard({required this.product});
+  final ProductRecommendation product;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product image
+          Expanded(
+            flex: 3,
+            child: Container(
+              width: double.infinity,
+              color: Colors.grey[200],
+              child: product.imageUrl.isNotEmpty
+                  ? Image.network(
+                      product.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(Icons.shopping_bag, size: 48, color: Colors.grey),
+                        );
+                      },
+                    )
+                  : const Center(
+                      child: Icon(Icons.shopping_bag, size: 48, color: Colors.grey),
+                    ),
+            ),
+          ),
+          // Product info
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Rating
+                  Row(
+                    children: [
+                      ...List.generate(5, (index) {
+                        return Icon(
+                          index < product.rating.floor()
+                              ? Icons.star
+                              : Icons.star_border,
+                          size: 12,
+                          color: Colors.amber,
+                        );
+                      }),
+                      const SizedBox(width: 4),
+                      Text(
+                        product.rating.toStringAsFixed(1),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Name
+                  Text(
+                    product.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Description
+                  Expanded(
+                    child: Text(
+                      product.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                            fontSize: 11,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Price and merchant
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '\$${product.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        product.merchant,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Shop button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _launchUrl(product.affiliateLink),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Shop Now', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.tryParse(url);
     if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
+}
 
-  String _categorizeObject(String objectName) {
-    final name = objectName.toLowerCase();
-    if ([
-      'shirt',
-      'pants',
-      'dress',
-      'jacket',
-      'coat',
-      'shoe',
-      'clothing',
-      'jeans',
-      'sweater',
-      'sock',
-      'tie',
-      'belt',
-      'hat',
-      'scarf'
-    ].any((item) => name.contains(item))) {
-      return 'clothing';
-    }
-    if ([
-      'book',
-      'magazine',
-      'newspaper',
-      'paper',
-      'document',
-      'notebook',
-      'folder',
-      'binder',
-      'journal'
-    ].any((item) => name.contains(item))) {
-      return 'books_paper';
-    }
-    if ([
-      'computer',
-      'laptop',
-      'phone',
-      'tablet',
-      'cable',
-      'charger',
-      'headphones',
-      'keyboard',
-      'mouse',
-      'monitor',
-      'television',
-      'remote'
-    ].any((item) => name.contains(item))) {
-      return 'electronics';
-    }
-    if ([
-      'plate',
-      'bowl',
-      'cup',
-      'mug',
-      'glass',
-      'fork',
-      'spoon',
-      'knife',
-      'pot',
-      'pan',
-      'bottle',
-      'food'
-    ].any((item) => name.contains(item))) {
-      return 'kitchen';
-    }
-    if (['toy', 'game', 'doll', 'puzzle', 'ball', 'lego', 'stuffed animal']
-        .any((item) => name.contains(item))) {
-      return 'toys';
-    }
-    if ([
-      'pen',
-      'pencil',
-      'stapler',
-      'scissors',
-      'tape',
-      'ruler',
-      'eraser',
-      'paperclip',
-      'calculator'
-    ].any((item) => name.contains(item))) {
-      return 'office';
-    }
-    if ([
-      'towel',
-      'brush',
-      'cosmetics',
-      'makeup',
-      'perfume',
-      'lotion',
-      'shampoo',
-      'soap',
-      'toothbrush'
-    ].any((item) => name.contains(item))) {
-      return 'personal_care';
-    }
-    if ([
-      'chair',
-      'table',
-      'desk',
-      'bed',
-      'sofa',
-      'couch',
-      'shelf',
-      'cabinet',
-      'drawer',
-      'dresser'
-    ].any((item) => name.contains(item))) {
-      return 'furniture';
-    }
-    return 'miscellaneous';
-  }
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
-  Future<List<ProductRecommendation>> _matchOrganizingProducts(
-      List<DetectedObject> objects) async {
-    final recommendations = <ProductRecommendation>[];
-    final categoryCounts = <String, int>{};
-    for (var obj in objects) {
-      final category = _categorizeObject(obj.name);
-      categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
-    }
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
-    final productDatabase = <String, List<ProductRecommendation>>{
-      'clothing': [
-        const ProductRecommendation(
-            name: 'Slim Velvet Hangers 50-Pack',
-            price: 29.99,
-            merchant: 'Amazon',
-            category: 'Hangers',
-            affiliateLink: 'https://amzn.to/example1',
-            imageUrl: 'https://i.imgur.com/example.jpg',
-            rating: 4.5,
-            description: 'Space-saving hangers for all clothing types'),
-        const ProductRecommendation(
-            name: 'Drawer Divider Organizers Set',
-            price: 15.99,
-            merchant: 'Amazon',
-            category: 'Organizers',
-            affiliateLink: 'https://amzn.to/example2',
-            imageUrl: 'https://i.imgur.com/example.jpg',
-            rating: 4.3,
-            description: 'Adjustable dividers for drawers'),
-      ],
-      'electronics': [
-        const ProductRecommendation(
-            name: 'Cable Management Box',
-            price: 19.99,
-            merchant: 'Amazon',
-            category: 'Cable Management',
-            affiliateLink: 'https://amzn.to/cable1',
-            imageUrl: 'https://i.imgur.com/example.jpg',
-            rating: 4.6,
-            description: 'Hide and organize all cables'),
-      ],
-      'books_paper': [
-        const ProductRecommendation(
-            name: 'Desktop File Organizer',
-            price: 22.99,
-            merchant: 'Walmart',
-            category: 'Filing',
-            affiliateLink: 'https://walmart.com/file1',
-            imageUrl: 'https://i.imgur.com/example.jpg',
-            rating: 4.2,
-            description: 'Multi-tier paper organizer'),
-      ],
-      'kitchen': [
-        const ProductRecommendation(
-            name: 'Airtight Food Storage Set',
-            price: 32.99,
-            merchant: 'Target',
-            category: 'Storage',
-            affiliateLink: 'https://target.com/food1',
-            imageUrl: 'https://i.imgur.com/example.jpg',
-            rating: 4.6,
-            description: '14-piece container set with labels'),
-      ],
-    };
-
-    final addedProducts = <String>{};
-    for (var entry in categoryCounts.entries) {
-      final category = entry.key;
-      final count = entry.value;
-      final categoryProducts = productDatabase[category];
-      if (categoryProducts != null && categoryProducts.isNotEmpty) {
-        final productsToAdd = count > 5 ? 2 : 1;
-        for (int i = 0; i < min(productsToAdd, categoryProducts.length); i++) {
-          var product = categoryProducts[i];
-          if (addedProducts.add(product.name)) {
-            recommendations.add(product);
-          }
-        }
-      }
-    }
-    return recommendations;
+  @override
+  Widget build(BuildContext context) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: Theme.of(context).colorScheme.primaryContainer,
+      checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
+    );
   }
 }
