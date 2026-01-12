@@ -35,6 +35,7 @@ devtools_options.yaml
 .swiftpm/
 migrate_working_dir/
 sha-keys.md
+md_files(temp)
 
 # Flutter / Dart tooling
 **/doc/api/
@@ -73,3 +74,11 @@ backend/functions/node_modules/
 # Local IDE/Flutter metadata
 .metadata
 android/local.properties
+
+# Auto-generated plugin registrants
+macos/Flutter/GeneratedPluginRegistrant.swift
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugins.cmake
+
+# Lock files (optional - uncomment if you want to track)
+# pubspec.lock
