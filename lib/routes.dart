@@ -10,6 +10,8 @@ import 'screens/app/settings_screen.dart';
 import 'screens/app/notification_settings_screen.dart';
 import 'screens/app/contact_us_screen.dart';
 import 'screens/app/pricing_screen.dart';
+import 'screens/payment/subscription_management_screen.dart';
+import 'screens/payment/connect_account_screen.dart';
 import 'screens/app/terms_services_screen.dart';
 import 'screens/app/privacy_policy_screen.dart';
 import 'screens/app/faqs_screen.dart';
@@ -36,6 +38,8 @@ class AppRoutes {
     '/notification-settings': (_) => const NotificationSettingsScreen(),
     '/contact-us': (_) => const ContactUsScreen(),
     '/pricing': (_) => const PricingScreen(),
+    '/subscription': (_) => const SubscriptionManagementScreen(),
+    '/connect-account': (_) => const ConnectAccountScreen(),
     '/terms': (_) => const TermsServicesScreen(),
     '/privacy-policy': (_) => const PrivacyPolicyScreen(),
     '/faqs': (_) => const FaqsScreen(),
