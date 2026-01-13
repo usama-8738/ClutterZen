@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../backend/registry.dart';
+import '../../../models/gemini_models.dart';
 import '../../../models/vision_models.dart';
 
 class DIYTab extends StatefulWidget {
@@ -12,51 +14,176 @@ class DIYTab extends StatefulWidget {
 }
 
 class _DIYTabState extends State<DIYTab> {
-  late final List<String> _instructions;
+  late final List<String> _fallbackInstructions;
+  GeminiRecommendation? _recommendation;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _instructions = _generateSmartInstructions(widget.analysis.objects);
+    _fallbackInstructions = _generateSmartInstructions(widget.analysis.objects);
+    _fetchGeminiRecommendations();
+  }
+
+  Future<void> _fetchGeminiRecommendations() async {
+    try {
+      final rec = await Registry.gemini.getRecommendations(
+        detectedObjects: widget.analysis.objects.map((o) => o.name).toList(),
+      );
+      if (mounted) {
+        setState(() {
+          _recommendation = rec;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gemini failed: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Generating AI Organization Plan...'),
+          ],
+        ),
+      );
+    }
+
+    final hasGemini =
+        _recommendation != null && _recommendation!.diyPlan.isNotEmpty;
+
     return ListView(
       padding: const EdgeInsets.all(8),
       children: [
         Container(
           padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary.withAlpha(15),
               borderRadius: BorderRadius.circular(12)),
           child: Row(children: [
-            const Icon(Icons.handyman, size: 32),
+            const Icon(Icons.psychology, size: 32),
             const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('Your Custom Organization Plan',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Follow these steps to declutter your space.'),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasGemini
+                        ? 'AI-Powered Organization Plan'
+                        : 'Your Custom Organization Plan',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    hasGemini
+                        ? (_recommendation!.summary ??
+                            'Optimized steps for your space.')
+                        : 'Follow these steps to declutter your space.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ],
+              ),
             )
           ]),
         ),
-        const SizedBox(height: 8),
-        for (final instruction in _instructions)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.check_box_outline_blank),
-              title: Text(instruction),
+        if (hasGemini)
+          ..._recommendation!.diyPlan.map((step) => Card(
+                child: ExpansionTile(
+                  leading: CircleAvatar(
+                    radius: 14,
+                    child: Text('${step.stepNumber}',
+                        style: const TextStyle(fontSize: 12)),
+                  ),
+                  title: Text(step.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(step.description),
+                          if (step.tips.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            const Text('Pro Tips:',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 12)),
+                            ...step.tips.map((tip) => Padding(
+                                  padding:
+                                      const EdgeInsets.only(top: 4, left: 8),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('• ',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                      Expanded(
+                                          child: Text(tip,
+                                              style: const TextStyle(
+                                                  fontSize: 12))),
+                                    ],
+                                  ),
+                                )),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ))
+        else
+          for (final instruction in _fallbackInstructions)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.check_box_outline_blank),
+                title: Text(instruction),
+              ),
+            ),
+        const SizedBox(height: 16),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.save),
+              label: const Text('Save Plan'),
             ),
           ),
-        const SizedBox(height: 8),
-        Row(children: [
-          OutlinedButton(onPressed: () {}, child: const Text('Save Plan')),
           const SizedBox(width: 8),
-          ElevatedButton(onPressed: () {}, child: const Text('Share'))
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.share),
+              label: const Text('Share'),
+            ),
+          )
         ]),
+        if (_errorMessage != null && !hasGemini)
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Text(
+              'Note: AI service unavailable, showing basic plan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+            ),
+          ),
       ],
     );
   }
