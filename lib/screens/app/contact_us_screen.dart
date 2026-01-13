@@ -1,30 +1,152 @@
 import 'package:flutter/material.dart';
 
-class ContactUsScreen extends StatelessWidget {
+import '../../app_firebase.dart';
+import '../../services/analytics_service.dart';
+import '../../services/contact_service.dart';
+
+class ContactUsScreen extends StatefulWidget {
   const ContactUsScreen({super.key});
+
+  @override
+  State<ContactUsScreen> createState() => _ContactUsScreenState();
+}
+
+class _ContactUsScreenState extends State<ContactUsScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _messageController = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill email if user is logged in
+    final user = AppFirebase.auth.currentUser;
+    if (user?.email != null) {
+      _emailController.text = user!.email!;
+    }
+    if (user?.displayName != null) {
+      _nameController.text = user!.displayName!;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _submitting = true);
+
+    try {
+      await ContactService.submitContactForm(
+        name: _nameController.text,
+        email: _emailController.text,
+        message: _messageController.text,
+      );
+
+      // Log analytics event
+      await AnalyticsService.logContactSubmission();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Thank you! We\'ll get back to you within 1-2 business days.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+
+        // Clear form
+        _nameController.clear();
+        _emailController.clear();
+        _messageController.clear();
+        _formKey.currentState!.reset();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Contact Us')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          _ResponseTimeBanner(),
-          SizedBox(height: 12),
-          _ContactField(hint: 'Name', keyboardType: TextInputType.name),
-          SizedBox(height: 8),
-          _ContactField(
-              hint: 'Email', keyboardType: TextInputType.emailAddress),
-          SizedBox(height: 8),
-          _ContactField(
-            hint: 'Message',
-            keyboardType: TextInputType.multiline,
-            maxLines: 6,
-          ),
-          SizedBox(height: 12),
-          _SubmitButton(),
-        ],
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const _ResponseTimeBanner(),
+            const SizedBox(height: 12),
+            _ContactField(
+              controller: _nameController,
+              hint: 'Name',
+              keyboardType: TextInputType.name,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 8),
+            _ContactField(
+              controller: _emailController,
+              hint: 'Email',
+              keyboardType: TextInputType.emailAddress,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!value.contains('@')) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 8),
+            _ContactField(
+              controller: _messageController,
+              hint: 'Message',
+              keyboardType: TextInputType.multiline,
+              maxLines: 6,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a message';
+                }
+                if (value.trim().length < 10) {
+                  return 'Message must be at least 10 characters';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            _SubmitButton(
+              onPressed: _submitting ? null : _submitForm,
+              submitting: _submitting,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -59,20 +181,26 @@ class _ResponseTimeBanner extends StatelessWidget {
 
 class _ContactField extends StatelessWidget {
   const _ContactField({
+    required this.controller,
     required this.hint,
     this.keyboardType,
     this.maxLines = 1,
+    this.validator,
   });
 
+  final TextEditingController controller;
   final String hint;
   final TextInputType? keyboardType;
   final int maxLines;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return TextFormField(
+      controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      validator: validator,
       decoration: const InputDecoration(
         filled: true,
         fillColor: Color(0xFFF2F4F7),
@@ -86,17 +214,32 @@ class _ContactField extends StatelessWidget {
 }
 
 class _SubmitButton extends StatelessWidget {
-  const _SubmitButton();
+  const _SubmitButton({
+    required this.onPressed,
+    required this.submitting,
+  });
+
+  final VoidCallback? onPressed;
+  final bool submitting;
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thanks for reaching out!')),
-        );
-      },
-      child: const Text('Send Message'),
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        minimumSize: const Size(double.infinity, 50),
+      ),
+      child: submitting
+          ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          : const Text('Send Message'),
     );
   }
 }

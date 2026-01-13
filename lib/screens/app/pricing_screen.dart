@@ -1,40 +1,45 @@
 import 'package:flutter/material.dart';
 
 import '../../app_firebase.dart';
+import '../../models/subscription_plan.dart';
 import '../../services/user_service.dart';
+import '../payment/checkout_screen.dart';
 
-class PricingScreen extends StatelessWidget {
+class PricingScreen extends StatefulWidget {
   const PricingScreen({super.key});
 
-  static final List<_PlanOption> _plans = [
-    const _PlanOption(
-      name: 'Free',
-      priceLabel: 'Free',
-      subtitle: 'Get started',
-      features: [
-        '3 scans per month',
-        'Core AI analysis',
-        'Standard checklists',
-      ],
-      highlight: false,
-      credits: 3,
-      creditsTotal: 3,
-    ),
-    const _PlanOption(
-      name: 'Pro',
-      priceLabel: '\$9.99/mo',
-      subtitle: 'Unlimited scanning',
-      features: [
-        'Unlimited scans included',
-        'Advanced room-by-room plans',
-        'Before/After generator priority',
-        'Priority chat support',
-      ],
-      highlight: true,
-      credits: 999,
-      creditsTotal: null,
-    ),
-  ];
+  @override
+  State<PricingScreen> createState() => _PricingScreenState();
+}
+
+class _PricingScreenState extends State<PricingScreen> {
+  String? _currentPlanId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentPlan();
+  }
+
+  Future<void> _loadCurrentPlan() async {
+    final uid = AppFirebase.auth.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final doc = await AppFirebase.firestore
+          .collection('users')
+          .doc(uid)
+          .get();
+      final data = doc.data();
+      setState(() {
+        _currentPlanId = data?['plan'] as String? ?? 'free';
+      });
+    } catch (e) {
+      setState(() {
+        _currentPlanId = 'free';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,19 +48,33 @@ class PricingScreen extends StatelessWidget {
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemBuilder: (context, index) {
-          final plan = _plans[index];
+          final subscriptionPlan = SubscriptionPlan.plans[index];
+          final isCurrentPlan = subscriptionPlan.id == _currentPlanId;
+          
+          // Convert to legacy format for _PlanCard
+          final plan = _PlanOption(
+            name: subscriptionPlan.name,
+            priceLabel: subscriptionPlan.formattedPrice,
+            subtitle: subscriptionPlan.description,
+            features: subscriptionPlan.features,
+            highlight: subscriptionPlan.isPopular,
+            credits: subscriptionPlan.scanCredits,
+            creditsTotal: subscriptionPlan.isUnlimited ? null : subscriptionPlan.scanCredits,
+            isCurrentPlan: isCurrentPlan,
+          );
+          
           return _PlanCard(
             plan: plan,
-            onSelect: () => _selectPlan(context, plan),
+            onSelect: () => _selectPlan(context, subscriptionPlan),
           );
         },
         separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemCount: _plans.length,
+        itemCount: SubscriptionPlan.plans.length,
       ),
     );
   }
 
-  Future<void> _selectPlan(BuildContext context, _PlanOption plan) async {
+  Future<void> _selectPlan(BuildContext context, SubscriptionPlan plan) async {
     final uid = AppFirebase.auth.currentUser?.uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,18 +83,48 @@ class PricingScreen extends StatelessWidget {
       return;
     }
 
-    await UserService.applyPlan(
-      uid,
-      planName: plan.name,
-      scanCredits: plan.credits,
-      creditsTotal: plan.creditsTotal,
-      resetUsage: true,
-    );
+    // If it's the current plan, do nothing
+    if (plan.id == _currentPlanId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You are already on the ${plan.name} plan.')),
+      );
+      return;
+    }
 
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${plan.name} plan activated.')),
-    );
+    // Navigate to checkout screen for paid plans
+    if (plan.price > 0) {
+      final result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => CheckoutScreen(plan: plan),
+        ),
+      );
+
+      if (result == true) {
+        await _loadCurrentPlan();
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${plan.name} plan activated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      // Free plan - apply directly
+      await UserService.applyPlan(
+        uid,
+        planName: plan.name,
+        scanCredits: plan.scanCredits,
+        creditsTotal: plan.isUnlimited ? null : plan.scanCredits,
+        resetUsage: true,
+      );
+
+      await _loadCurrentPlan();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${plan.name} plan activated.')),
+      );
+    }
   }
 }
 
@@ -169,17 +218,30 @@ class _PlanCard extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: onSelect,
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(double.infinity, 48),
-              backgroundColor: plan.highlight ? Colors.black : Colors.white,
-              foregroundColor: plan.highlight ? Colors.white : Colors.black,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+          if (plan.isCurrentPlan)
+            OutlinedButton(
+              onPressed: null,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Current Plan'),
+            )
+          else
+            ElevatedButton(
+              onPressed: onSelect,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                backgroundColor: plan.highlight ? Colors.black : Colors.white,
+                foregroundColor: plan.highlight ? Colors.white : Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(plan.highlight ? 'Upgrade' : plan.name == 'Free' ? 'Select Free' : 'Upgrade'),
             ),
-            child: Text(plan.highlight ? 'Upgrade' : 'Stay on Free'),
-          ),
         ],
       ),
     );
@@ -195,6 +257,7 @@ class _PlanOption {
     required this.highlight,
     required this.credits,
     required this.creditsTotal,
+    this.isCurrentPlan = false,
   });
 
   final String name;
@@ -204,4 +267,5 @@ class _PlanOption {
   final bool highlight;
   final int credits;
   final int? creditsTotal;
+  final bool isCurrentPlan;
 }

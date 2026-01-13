@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../app_firebase.dart';
+import '../../services/i18n_service.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -273,14 +274,8 @@ class SettingsScreen extends StatelessWidget {
                 
                 const SizedBox(height: 24),
                 
-                // Settings Items
-                _SettingsCard(
-                  icon: Icons.language,
-                  iconColor: Colors.green,
-                  title: 'English',
-                  trailing: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                  onTap: () {},
-                ),
+                    // Settings Items
+                    _LanguageCard(),
                 const SizedBox(height: 12),
                 
                 _SettingsCard(
@@ -298,6 +293,24 @@ class SettingsScreen extends StatelessWidget {
                   title: 'Scan history',
                   trailing: const Icon(Icons.keyboard_arrow_right, color: Colors.grey),
                   onTap: () => Navigator.of(context).pushNamed('/history'),
+                ),
+                const SizedBox(height: 12),
+                
+                _SettingsCard(
+                  icon: Icons.card_membership,
+                  iconColor: Colors.purple,
+                  title: 'Manage Subscription',
+                  trailing: const Icon(Icons.keyboard_arrow_right, color: Colors.grey),
+                  onTap: () => Navigator.of(context).pushNamed('/subscription'),
+                ),
+                const SizedBox(height: 12),
+                
+                _SettingsCard(
+                  icon: Icons.account_balance_wallet,
+                  iconColor: Colors.blue,
+                  title: 'Connect Stripe Account',
+                  trailing: const Icon(Icons.keyboard_arrow_right, color: Colors.grey),
+                  onTap: () => Navigator.of(context).pushNamed('/connect-account'),
                 ),
                 const SizedBox(height: 24),
                 
@@ -548,6 +561,69 @@ class _SettingsCard extends StatelessWidget {
         ),
         trailing: trailing,
         onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _LanguageCard extends StatefulWidget {
+  const _LanguageCard();
+
+  @override
+  State<_LanguageCard> createState() => _LanguageCardState();
+}
+
+class _LanguageCardState extends State<_LanguageCard> {
+  @override
+  Widget build(BuildContext context) {
+    final currentLocale = I18nService.currentLocale;
+    final currentLanguage = I18nService.getLocaleDisplayName(currentLocale);
+
+    return _SettingsCard(
+      icon: Icons.language,
+      iconColor: Colors.green,
+      title: currentLanguage,
+      trailing: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+      onTap: () => _showLanguageDialog(context),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: I18nService.supportedLocales.map((locale) {
+            final isSelected = locale == I18nService.currentLocale;
+            return ListTile(
+              title: Text(I18nService.getLocaleDisplayName(locale)),
+              trailing: isSelected
+                  ? const Icon(Icons.check, color: Colors.green)
+                  : null,
+              onTap: () {
+                I18nService.setLocale(locale);
+                Navigator.of(context).pop();
+                setState(() {}); // Update UI
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Language changed to ${I18nService.getLocaleDisplayName(locale)}',
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }
