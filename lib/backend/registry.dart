@@ -11,112 +11,95 @@ import 'firebase/firebase_storage_repository.dart';
 import '../services/vision_service.dart';
 import '../models/vision_models.dart';
 import '../services/replicate_service.dart';
-import 'fakes/fake_analysis_repository.dart';
-import 'fakes/fake_storage_repository.dart';
-import 'fakes/fake_vision_provider.dart';
-import 'fakes/fake_generate_provider.dart';
-// import 'firebase/firebase_functions_provider.dart'; // Uncomment when Functions are deployed
 import 'interfaces/local_store.dart';
 import 'local/shared_prefs_store.dart';
-import 'fakes/fake_local_store.dart';
 import 'dart:typed_data';
+import 'interfaces/gemini_provider.dart';
+import '../services/gemini_service.dart';
+import '../models/gemini_models.dart';
 
 class BackendRegistry {
   BackendRegistry._();
 
   static IAnalysisRepository analysisRepository() {
-    // If Firestore available, prefer Firebase; otherwise fall back to fake
-    try {
-      return FirebaseAnalysisRepository(AppFirebase.firestore);
-    } catch (_) {
-      return FakeAnalysisRepository();
-    }
+    return FirebaseAnalysisRepository(AppFirebase.firestore);
   }
 
   static IStorageRepository storageRepository() {
-    try {
-      return FirebaseStorageRepository(FirebaseStorage.instance);
-    } catch (_) {
-      return FakeStorageRepository();
-    }
+    return FirebaseStorageRepository(FirebaseStorage.instance);
   }
 
   static IVisionProvider visionProvider() {
-    // Priority 1: Use Firebase Functions (most secure, recommended for production)
-    // Uncomment when Functions are deployed with API keys configured
-    // try {
-    //   return FirebaseFunctionsVisionProvider();
-    // } catch (e) {
-    //   // Fall through to direct API if Functions fail
-    // }
-    
-    // Priority 2: Use direct API if keys provided (development/testing)
-    if (Env.visionApiKey.isNotEmpty) {
-      final svc = VisionService(apiKey: Env.visionApiKey);
-      return _VisionAdapter(svc);
+    if (Env.visionApiKey.isEmpty) {
+      throw StateError(
+          'VISION_API_KEY is not configured. Add it to your .env file.');
     }
-    
-    // Priority 3: Fallback to fake provider (for UI testing)
-    return FakeVisionProvider();
+    final svc = VisionService(apiKey: Env.visionApiKey);
+    return _VisionAdapter(svc);
   }
 
   static IGenerateProvider generateProvider() {
-    // Priority 1: Use Firebase Functions (most secure, recommended for production)
-    // Uncomment when Functions are deployed with API keys configured
-    // try {
-    //   return FirebaseFunctionsGenerateProvider();
-    // } catch (e) {
-    //   // Fall through to direct API if Functions fail
-    // }
-    
-    // Priority 2: Use direct API if keys provided (development/testing)
-    if (Env.replicateToken.isNotEmpty) {
-      final svc = ReplicateService(apiToken: Env.replicateToken);
-      return _GenerateAdapter(svc);
+    if (Env.replicateToken.isEmpty) {
+      throw StateError(
+          'REPLICATE_API_TOKEN is not configured. Add it to your .env file.');
     }
-    
-    // Priority 3: Fallback to fake provider (for UI testing)
-    return FakeGenerateProvider();
+    final svc = ReplicateService(apiToken: Env.replicateToken);
+    return _GenerateAdapter(svc);
   }
 
   static ILocalStore localStore() {
-    try {
-      return SharedPrefsStore();
-    } catch (_) {
-      return FakeLocalStore();
+    return SharedPrefsStore();
+  }
+
+  static IGeminiProvider geminiProvider() {
+    if (Env.geminiApiKey.isEmpty) {
+      throw StateError(
+          'GEMINI_API_KEY is not configured. Add it to your .env file.');
     }
+    final svc = GeminiService(apiKey: Env.geminiApiKey);
+    return _GeminiAdapter(svc);
   }
 }
 
 // Registry class for easy access to services
 class Registry {
-  static IAnalysisRepository _analysis = BackendRegistry.analysisRepository();
-  static IStorageRepository _storage = BackendRegistry.storageRepository();
-  static IVisionProvider _vision = BackendRegistry.visionProvider();
-  static IGenerateProvider _replicate = BackendRegistry.generateProvider();
+  static IAnalysisRepository? _analysis;
+  static IStorageRepository? _storage;
+  static IVisionProvider? _vision;
+  static IGenerateProvider? _replicate;
+  static IGeminiProvider? _gemini;
 
-  static IAnalysisRepository get analysis => _analysis;
-  static IStorageRepository get storage => _storage;
-  static IVisionProvider get vision => _vision;
-  static IGenerateProvider get replicate => _replicate;
+  static IAnalysisRepository get analysis =>
+      _analysis ??= BackendRegistry.analysisRepository();
+  static IStorageRepository get storage =>
+      _storage ??= BackendRegistry.storageRepository();
+  static IVisionProvider get vision =>
+      _vision ??= BackendRegistry.visionProvider();
+  static IGenerateProvider get replicate =>
+      _replicate ??= BackendRegistry.generateProvider();
+  static IGeminiProvider get gemini =>
+      _gemini ??= BackendRegistry.geminiProvider();
 
   static void configure({
     IAnalysisRepository? analysis,
     IStorageRepository? storage,
     IVisionProvider? vision,
     IGenerateProvider? replicate,
+    IGeminiProvider? gemini,
   }) {
     if (analysis != null) _analysis = analysis;
     if (storage != null) _storage = storage;
     if (vision != null) _vision = vision;
     if (replicate != null) _replicate = replicate;
+    if (gemini != null) _gemini = gemini;
   }
 
   static void reset() {
-    _analysis = BackendRegistry.analysisRepository();
-    _storage = BackendRegistry.storageRepository();
-    _vision = BackendRegistry.visionProvider();
-    _replicate = BackendRegistry.generateProvider();
+    _analysis = null;
+    _storage = null;
+    _vision = null;
+    _replicate = null;
+    _gemini = null;
   }
 }
 
@@ -136,5 +119,24 @@ class _GenerateAdapter implements IGenerateProvider {
   final ReplicateService _svc;
   @override
   Future<String> generateOrganizedImage({required String imageUrl}) =>
-      _svc.generateOrganizedImage(imageUrl: imageUrl);
+      _svc.generateOrganizedImage(
+        imageUrl: imageUrl,
+        fallbackToOriginal: true,
+      );
+}
+
+class _GeminiAdapter implements IGeminiProvider {
+  _GeminiAdapter(this._svc);
+  final GeminiService _svc;
+  @override
+  Future<GeminiRecommendation> getRecommendations({
+    String? spaceDescription,
+    required List<String> detectedObjects,
+    Uint8List? imageBytes,
+  }) =>
+      _svc.getRecommendations(
+        spaceDescription: spaceDescription,
+        detectedObjects: detectedObjects,
+        imageBytes: imageBytes,
+      );
 }
