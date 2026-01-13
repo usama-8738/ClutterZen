@@ -1,6 +1,15 @@
 VISION_API_KEY=YOUR_VISION_API_KEY
 REPLICATE_API_TOKEN=YOUR_REPLICATE_TOKEN
 
+# Stripe API Keys
+# Get your keys from https://dashboard.stripe.com/apikeys
+STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key_here
+STRIPE_SECRET_KEY=your_stripe_secret_key_here
+
+# Stripe Connect (for marketplace payments)
+# Get your Connect client ID from https://dashboard.stripe.com/settings/applications
+STRIPE_CONNECT_CLIENT_ID=your_stripe_connect_client_id_here
+
 # Firebase web config (optional)
 FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY
 FIREBASE_AUTH_DOMAIN=
