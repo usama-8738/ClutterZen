@@ -1,35 +1,98 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../backend/registry.dart';
 import '../../../models/professional_service.dart';
 import '../../../models/vision_models.dart';
 import '../../../services/professional_service_provider.dart';
 import '../../payment/book_service_screen.dart';
 
-class ProfessionalTab extends StatelessWidget {
+class ProfessionalTab extends StatefulWidget {
   const ProfessionalTab({super.key, this.analysis});
 
   final VisionAnalysis? analysis;
 
   @override
-  Widget build(BuildContext context) {
-    // Get matched professionals based on analysis, or all if no analysis
-    final professionals = analysis != null
-        ? ProfessionalServiceProvider.matchProfessionals(analysis!)
+  State<ProfessionalTab> createState() => _ProfessionalTabState();
+}
+
+class _ProfessionalTabState extends State<ProfessionalTab> {
+  late Future<List<ProfessionalService>> _professionalsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _professionalsFuture = _loadProfessionals();
+  }
+
+  Future<List<ProfessionalService>> _loadProfessionals() async {
+    // Get matched professionals based on analysis
+    final baseProfessionals = widget.analysis != null
+        ? ProfessionalServiceProvider.matchProfessionals(widget.analysis!)
         : ProfessionalServiceProvider.getAllProfessionals();
 
-    if (professionals.isEmpty) {
-      return const Center(
-        child: Text('No professional services available'),
-      );
+    // Enhance with Gemini-suggested service categories
+    if (widget.analysis != null) {
+      try {
+        // Calculate approximate clutter score from object count
+        final clutterScore = (widget.analysis!.objects.length * 10.0).clamp(0.0, 100.0);
+        
+        final geminiRecs = await Registry.gemini.getRecommendations(
+          detectedObjects: widget.analysis!.objects.map((o) => o.name).toList(),
+          spaceDescription: 'Cluttered space requiring professional help',
+          clutterScore: clutterScore,
+        );
+
+        // Filter professionals to prioritize those matching Gemini's service recommendations
+        final recommendedCategories =
+            geminiRecs.services.map((s) => s.category.toLowerCase()).toSet();
+
+        // Sort: Gemini-recommended categories first, then others
+        final sortedPros = baseProfessionals.toList()
+          ..sort((a, b) {
+            final aMatch =
+                recommendedCategories.contains(a.specialty.toLowerCase());
+            final bMatch =
+                recommendedCategories.contains(b.specialty.toLowerCase());
+            if (aMatch && !bMatch) return -1;
+            if (!aMatch && bMatch) return 1;
+            return 0;
+          });
+
+        return sortedPros;
+      } catch (e) {
+        // Silently fall back to base recommendations
+      }
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: professionals.length,
-      itemBuilder: (context, index) {
-        final professional = professionals[index];
-        return _ProfessionalCard(professional: professional);
+    return baseProfessionals;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ProfessionalService>>(
+      future: _professionalsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final professionals = snapshot.data ?? [];
+
+        if (professionals.isEmpty) {
+          return const Center(
+            child: Text('No professional services available'),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: professionals.length,
+          itemBuilder: (context, index) {
+            final professional = professionals[index];
+            return _ProfessionalCard(professional: professional);
+          },
+        );
       },
     );
   }
@@ -99,7 +162,8 @@ class _ProfessionalCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(20),
@@ -223,7 +287,8 @@ class _ProfessionalCard extends StatelessWidget {
     }
   }
 
-  Future<void> _bookService(BuildContext context, ProfessionalService professional) async {
+  Future<void> _bookService(
+      BuildContext context, ProfessionalService professional) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => BookServiceScreen(professional: professional),

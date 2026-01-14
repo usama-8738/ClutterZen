@@ -133,10 +133,12 @@ class _GeminiAdapter implements IGeminiProvider {
     String? spaceDescription,
     required List<String> detectedObjects,
     Uint8List? imageBytes,
+    double? clutterScore,
   }) =>
       _svc.getRecommendations(
         spaceDescription: spaceDescription,
         detectedObjects: detectedObjects,
         imageBytes: imageBytes,
+        clutterScore: clutterScore,
       );
 }

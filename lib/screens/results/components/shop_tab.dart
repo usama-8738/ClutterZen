@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../backend/registry.dart';
 import '../../../models/product_recommendation.dart';
 import '../../../models/vision_models.dart';
 import '../../../services/product_recommendation_service.dart';
@@ -21,9 +22,58 @@ class _ShopTabState extends State<ShopTab> {
   @override
   void initState() {
     super.initState();
-    _recommendationsFuture = ProductRecommendationService.generateRecommendations(
-      widget.analysis,
-    );
+    _recommendationsFuture = _loadAllRecommendations();
+  }
+
+  Future<List<ProductRecommendation>> _loadAllRecommendations() async {
+    // Load both Firestore products and Gemini AI recommendations in parallel
+    final results = await Future.wait([
+      ProductRecommendationService.generateRecommendations(widget.analysis),
+      _loadGeminiRecommendations(),
+    ]);
+
+    // Merge Firestore products with Gemini suggestions
+    final firestoreProducts = results[0];
+    final geminiProducts = results[1];
+
+    // Deduplicate by name (prefer Firestore if duplicate)
+    final Map<String, ProductRecommendation> productMap = {};
+    for (final product in [...firestoreProducts, ...geminiProducts]) {
+      productMap.putIfAbsent(product.name.toLowerCase(), () => product);
+    }
+
+    return productMap.values.toList();
+  }
+
+  Future<List<ProductRecommendation>> _loadGeminiRecommendations() async {
+    try {
+      // Calculate approximate clutter score from object count
+      final clutterScore =
+          (widget.analysis.objects.length * 10.0).clamp(0.0, 100.0);
+
+      final geminiRecs = await Registry.gemini.getRecommendations(
+        detectedObjects: widget.analysis.objects.map((o) => o.name).toList(),
+        spaceDescription: 'Cluttered space with items needing organization',
+        clutterScore: clutterScore,
+      );
+
+      // Convert Gemini ProductRecommendations to app's ProductRecommendation format
+      return geminiRecs.products
+          .map((geminiProduct) => ProductRecommendation(
+                name: geminiProduct.name,
+                price: geminiProduct.price ?? 0.0,
+                merchant: 'AI Recommended',
+                category: geminiProduct.category,
+                affiliateLink: geminiProduct.affiliateUrl ?? '',
+                imageUrl: geminiProduct.imageUrl ?? '',
+                rating: 4.5, // Default rating for AI recommendations
+                description: geminiProduct.description,
+              ))
+          .toList();
+    } catch (e) {
+      // Silently fail if Gemini is unavailable
+      return [];
+    }
   }
 
   @override
@@ -46,16 +96,17 @@ class _ShopTabState extends State<ShopTab> {
             ),
           );
         }
-        
+
         final allRecommendations = snapshot.data ?? [];
         final filtered = _filterProducts(allRecommendations);
-        
+
         if (filtered.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.shopping_bag_outlined, size: 64, color: Colors.grey),
+                const Icon(Icons.shopping_bag_outlined,
+                    size: 64, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
                   _searchQuery.isNotEmpty || _selectedCategory != null
@@ -77,7 +128,7 @@ class _ShopTabState extends State<ShopTab> {
             ),
           );
         }
-        
+
         return Column(
           children: [
             // Search and filter bar
@@ -120,19 +171,22 @@ class _ShopTabState extends State<ShopTab> {
                         _CategoryChip(
                           label: 'Storage',
                           selected: _selectedCategory == 'Storage',
-                          onTap: () => setState(() => _selectedCategory = 'Storage'),
+                          onTap: () =>
+                              setState(() => _selectedCategory = 'Storage'),
                         ),
                         const SizedBox(width: 8),
                         _CategoryChip(
                           label: 'Organizers',
                           selected: _selectedCategory == 'Organizers',
-                          onTap: () => setState(() => _selectedCategory = 'Organizers'),
+                          onTap: () =>
+                              setState(() => _selectedCategory = 'Organizers'),
                         ),
                         const SizedBox(width: 8),
                         _CategoryChip(
                           label: 'Furniture',
                           selected: _selectedCategory == 'Furniture',
-                          onTap: () => setState(() => _selectedCategory = 'Furniture'),
+                          onTap: () =>
+                              setState(() => _selectedCategory = 'Furniture'),
                         ),
                       ],
                     ),
@@ -163,22 +217,24 @@ class _ShopTabState extends State<ShopTab> {
     );
   }
 
-  List<ProductRecommendation> _filterProducts(List<ProductRecommendation> products) {
+  List<ProductRecommendation> _filterProducts(
+      List<ProductRecommendation> products) {
     var filtered = products;
-    
+
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((p) {
         return p.name.toLowerCase().contains(query) ||
-               p.description.toLowerCase().contains(query) ||
-               p.category.toLowerCase().contains(query);
+            p.description.toLowerCase().contains(query) ||
+            p.category.toLowerCase().contains(query);
       }).toList();
     }
-    
+
     if (_selectedCategory != null) {
-      filtered = filtered.where((p) => p.category == _selectedCategory).toList();
+      filtered =
+          filtered.where((p) => p.category == _selectedCategory).toList();
     }
-    
+
     return filtered;
   }
 }
@@ -208,12 +264,14 @@ class _ProductCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(
-                          child: Icon(Icons.shopping_bag, size: 48, color: Colors.grey),
+                          child: Icon(Icons.shopping_bag,
+                              size: 48, color: Colors.grey),
                         );
                       },
                     )
                   : const Center(
-                      child: Icon(Icons.shopping_bag, size: 48, color: Colors.grey),
+                      child: Icon(Icons.shopping_bag,
+                          size: 48, color: Colors.grey),
                     ),
             ),
           ),
@@ -301,7 +359,8 @@ class _ProductCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text('Shop Now', style: TextStyle(fontSize: 12)),
+                      child: const Text('Shop Now',
+                          style: TextStyle(fontSize: 12)),
                     ),
                   ),
                 ],

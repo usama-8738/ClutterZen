@@ -23,6 +23,7 @@ class GeminiService {
     String? spaceDescription,
     required List<String> detectedObjects,
     Uint8List? imageBytes,
+    double? clutterScore,
   }) async {
     if (detectedObjects.isEmpty && spaceDescription == null) {
       return GeminiRecommendation.empty();
@@ -31,6 +32,7 @@ class GeminiService {
     final prompt = _buildPrompt(
       spaceDescription: spaceDescription,
       detectedObjects: detectedObjects,
+      clutterScore: clutterScore,
     );
 
     for (final modelName in _modelHierarchy) {
@@ -82,23 +84,38 @@ class GeminiService {
   String _buildPrompt({
     String? spaceDescription,
     required List<String> detectedObjects,
+    double? clutterScore,
   }) {
     final objectsList = detectedObjects.join(', ');
 
-    return '''
-You are a professional home organization expert. Analyze the following information and provide personalized recommendations.
+    // Smart room type detection
+    final roomType = _detectRoomType(detectedObjects);
+    final roomContext = _getRoomContext(roomType);
 
-${spaceDescription != null ? 'Space Description: $spaceDescription' : ''}
-Detected Objects: $objectsList
+    // Clutter severity analysis
+    final severity = _analyzeClutterSeverity(clutterScore ?? 50.0);
+
+    return '''
+You are a professional home organization expert specializing in ${roomType.toLowerCase()} spaces.
+
+SPACE ANALYSIS:
+${spaceDescription != null ? '- Description: $spaceDescription' : ''}
+- Room Type: $roomType
+- Detected Objects: $objectsList
+- Clutter Level: ${severity.level} (${clutterScore?.toStringAsFixed(0) ?? '50'}/100)
+
+${severity.context}
+
+${roomContext.focus}
 
 Provide recommendations in the following JSON format:
 {
-  "summary": "Brief analysis of the space (2-3 sentences)",
+  "summary": "${severity.summaryGuideline}",
   "services": [
     {
       "name": "Service name",
       "description": "What this service does",
-      "category": "Category (e.g., Cleaning, Organization, Decluttering)",
+      "category": "${roomContext.serviceCategory}",
       "estimatedCost": 100
     }
   ],
@@ -106,7 +123,7 @@ Provide recommendations in the following JSON format:
     {
       "name": "Product name",
       "description": "How this product helps",
-      "category": "Category (e.g., Storage, Labels, Containers)",
+      "category": "${roomContext.productCategory}",
       "price": 25
     }
   ],
@@ -120,13 +137,237 @@ Provide recommendations in the following JSON format:
   ]
 }
 
-Guidelines:
-- Suggest 2-4 relevant services based on the detected clutter
-- Recommend 3-6 products that would help organize the space
-- Create a 4-6 step DIY plan for self-organization
-- Be specific and actionable
-- Consider the types of objects detected when making recommendations
+GUIDELINES:
+${roomContext.guidelines}
+${severity.recommendations}
 ''';
+  }
+
+  String _detectRoomType(List<String> objects) {
+    final objectsLower = objects.map((o) => o.toLowerCase()).toSet();
+
+    // Kitchen indicators
+    if (objectsLower.any((o) => [
+          'refrigerator',
+          'stove',
+          'microwave',
+          'dishes',
+          'utensils',
+          'pots',
+          'pans',
+          'food',
+          'kitchen'
+        ].contains(o))) {
+      return 'Kitchen';
+    }
+
+    // Bedroom indicators
+    if (objectsLower.any((o) => [
+          'bed',
+          'mattress',
+          'pillow',
+          'blanket',
+          'dresser',
+          'nightstand',
+          'closet',
+          'clothes'
+        ].contains(o))) {
+      return 'Bedroom';
+    }
+
+    // Bathroom indicators
+    if (objectsLower.any((o) => [
+          'toilet',
+          'sink',
+          'shower',
+          'bathtub',
+          'towel',
+          'soap',
+          'shampoo',
+          'bathroom'
+        ].contains(o))) {
+      return 'Bathroom';
+    }
+
+    // Garage/Storage indicators
+    if (objectsLower.any((o) => [
+          'tools',
+          'car',
+          'bike',
+          'lawn',
+          'garage',
+          'workbench',
+          'ladder',
+          'paint'
+        ].contains(o))) {
+      return 'Garage/Storage';
+    }
+
+    // Office indicators
+    if (objectsLower.any((o) => [
+          'desk',
+          'computer',
+          'laptop',
+          'monitor',
+          'keyboard',
+          'office',
+          'chair',
+          'papers',
+          'documents'
+        ].contains(o))) {
+      return 'Office/Workspace';
+    }
+
+    // Living room indicators
+    if (objectsLower.any((o) => [
+          'couch',
+          'sofa',
+          'tv',
+          'television',
+          'coffee table',
+          'remote',
+          'living room'
+        ].contains(o))) {
+      return 'Living Room';
+    }
+
+    return 'General Space';
+  }
+
+  _RoomContext _getRoomContext(String roomType) {
+    switch (roomType) {
+      case 'Kitchen':
+        return _RoomContext(
+          focus:
+              'FOCUS: Food safety, expiration management, and workflow efficiency.',
+          serviceCategory: 'Kitchen Organization, Deep Cleaning, Pest Control',
+          productCategory: 'Food Storage, Labels, Pantry Solutions',
+          guidelines:
+              '- Prioritize food storage containers and expiration tracking\n'
+              '- Recommend space-saving solutions for small kitchens\n'
+              '- Address hygiene and food safety in recommendations',
+        );
+
+      case 'Bedroom':
+        return _RoomContext(
+          focus:
+              'FOCUS: Clothing management, sleep environment optimization, and personal item storage.',
+          serviceCategory:
+              'Closet Organization, Feng Shui Consultation, Moving Services',
+          productCategory:
+              'Closet Organizers, Under-bed Storage, Drawer Dividers',
+          guidelines: '- Focus on wardrobe organization and seasonal rotation\n'
+              '- Recommend sleep-friendly decluttering (minimal, calming)\n'
+              '- Suggest privacy and personal space solutions',
+        );
+
+      case 'Garage/Storage':
+        return _RoomContext(
+          focus:
+              'FOCUS: Heavy-duty storage, seasonal item management, and tool organization.',
+          serviceCategory:
+              'Garage Organization, Junk Removal, Handyman Services',
+          productCategory:
+              'Wall-mounted Systems, Weather-proof Bins, Tool Organizers',
+          guidelines:
+              '- Recommend wall-mounted and overhead storage to maximize floor space\n'
+              '- Suggest heavy-duty, weather-resistant products\n'
+              '- Address safety (sharp tools, chemicals) in organization plan',
+        );
+
+      case 'Office/Workspace':
+        return _RoomContext(
+          focus:
+              'FOCUS: Productivity optimization, paper management, and tech organization.',
+          serviceCategory:
+              'Professional Organizing, Document Shredding, IT Cable Management',
+          productCategory: 'Desk Organizers, Filing Systems, Cable Management',
+          guidelines:
+              '- Prioritize paper filing and digital organization tips\n'
+              '- Recommend ergonomic and productivity-enhancing products\n'
+              '- Address cable management and tech clutter',
+        );
+
+      case 'Bathroom':
+        return _RoomContext(
+          focus: 'FOCUS: Hygiene, moisture control, and small-space storage.',
+          serviceCategory:
+              'Deep Cleaning, Mold Remediation, Bathroom Remodeling',
+          productCategory:
+              'Shower Caddies, Medicine Cabinet Organizers, Moisture-proof Storage',
+          guidelines: '- Recommend moisture-resistant storage solutions\n'
+              '- Focus on hygiene and accessibility\n'
+              '- Suggest space-saving vertical storage',
+        );
+
+      default:
+        return _RoomContext(
+          focus:
+              'FOCUS: General organization principles and versatile solutions.',
+          serviceCategory: 'Organization, Cleaning, Decluttering',
+          productCategory: 'Storage, Labels, Containers',
+          guidelines:
+              '- Suggest 2-4 relevant services based on detected clutter\n'
+              '- Recommend 3-6 products that would help organize the space\n'
+              '- Create a 4-6 step DIY plan for self-organization',
+        );
+    }
+  }
+
+  _ClutterSeverity _analyzeClutterSeverity(double score) {
+    if (score >= 80) {
+      return _ClutterSeverity(
+        level: 'SEVERE',
+        context:
+            'WARNING: This space is severely cluttered and may be overwhelming to tackle alone.',
+        summaryGuideline:
+            'Acknowledge the severity, recommend professional help first, then outline a phased approach',
+        recommendations:
+            '- STRONGLY recommend professional junk removal or organizer as first step\n'
+            '- Break DIY plan into multiple phases (don\'t overwhelm)\n'
+            '- Suggest hiring help for heavy lifting or disposal\n'
+            '- Recommend "quick wins" to build motivation',
+      );
+    } else if (score >= 60) {
+      return _ClutterSeverity(
+        level: 'MODERATE-HIGH',
+        context:
+            'This space has significant clutter that will require dedicated effort to organize.',
+        summaryGuideline:
+            'Be realistic about time/effort needed, offer both DIY and professional options',
+        recommendations:
+            '- Provide both DIY solutions AND professional service options\n'
+            '- Recommend time-saving products (pre-labeled bins, all-in-one systems)\n'
+            '- Suggest tackling space in zones over multiple sessions\n'
+            '- Include motivation tips in DIY plan',
+      );
+    } else if (score >= 40) {
+      return _ClutterSeverity(
+        level: 'MODERATE',
+        context:
+            'This space has manageable clutter that can be addressed with focused organization.',
+        summaryGuideline:
+            'Offer practical, actionable DIY solutions with minimal professional help',
+        recommendations:
+            '- Focus on practical DIY solutions that can be completed in one session\n'
+            '- Recommend affordable, accessible products\n'
+            '- Professional services are optional (mention as time-savers)\n'
+            '- Provide clear, step-by-step instructions',
+      );
+    } else {
+      return _ClutterSeverity(
+        level: 'LIGHT',
+        context:
+            'This space is mostly organized and needs only minor improvements.',
+        summaryGuideline:
+            'Focus on maintenance, optimization, and finishing touches',
+        recommendations:
+            '- Suggest maintenance products (label makers, small containers)\n'
+            '- Recommend aesthetic improvements (decorative baskets, matching bins)\n'
+            '- Professional services likely not needed\n'
+            '- DIY plan should focus on optimization, not overhaul',
+      );
+    }
   }
 
   GeminiRecommendation _parseResponse(String text) {
@@ -179,4 +420,33 @@ Guidelines:
       );
     }
   }
+}
+
+// Helper classes for room context
+class _RoomContext {
+  final String focus;
+  final String serviceCategory;
+  final String productCategory;
+  final String guidelines;
+
+  _RoomContext({
+    required this.focus,
+    required this.serviceCategory,
+    required this.productCategory,
+    required this.guidelines,
+  });
+}
+
+class _ClutterSeverity {
+  final String level;
+  final String context;
+  final String summaryGuideline;
+  final String recommendations;
+
+  _ClutterSeverity({
+    required this.level,
+    required this.context,
+    required this.summaryGuideline,
+    required this.recommendations,
+  });
 }

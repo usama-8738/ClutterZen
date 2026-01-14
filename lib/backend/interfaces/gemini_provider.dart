@@ -14,5 +14,6 @@ abstract class IGeminiProvider {
     String? spaceDescription,
     required List<String> detectedObjects,
     Uint8List? imageBytes,
+    double? clutterScore,
   });
 }
